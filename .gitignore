@@ -18,3 +18,7 @@ update-hermes.sh
 
 # Monetization planning — private, never committed
 monetization/
+
+# Backup files
+*.bak
+*.bak.*
