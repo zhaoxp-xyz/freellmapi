@@ -21,6 +21,7 @@ import { runFallbackLoop, newFallbackState, recordUpstreamSuccess, exhaustedRetr
 import type { Platform } from '@freellmapi/shared/types.js';
 import { inferQuotaPoolKey, type QuotaObservationContext } from '../services/provider-quota.js';
 import { isUnifyEnabled, getModelGroups, resolveRequestedIdToMembers } from '../services/model-groups.js';
+import { isValidTaskType } from '../services/auxiliary.js';
 import { buildModelListing } from '../services/model-listing.js';
 
 export const proxyRouter = Router();
@@ -681,6 +682,36 @@ proxyRouter.post('/completions', async (req: Request, res: Response) => {
         return;
       }
     } else {
+      // auxiliary_config: task_type acts as a virtual model group
+      if (isValidTaskType(requestedModel)) {
+        const auxRows = db.prepare(
+          'SELECT model_db_id FROM auxiliary_config WHERE task_type = ? AND enabled = 1 ORDER BY priority ASC'
+        ).all(requestedModel) as { model_db_id: number }[];
+        if (auxRows.length > 0) {
+          groupChain = resolveModelGroupCandidates(auxRows.map(r => r.model_db_id));
+          if (groupChain.length === 0) {
+            res.status(400).json({
+              error: {
+                message: `Model '${requestedModel}' has no providers with an enabled key. Use 'auto' (or omit the 'model' field) to auto-route, or call /v1/models for the available list.`,
+                type: 'invalid_request_error',
+                code: 'model_not_found',
+              },
+            });
+            return;
+          }
+        } else {
+          const disabled = db.prepare('SELECT id FROM models WHERE model_id = ?').get(requestedModel) as { id: number } | undefined;
+          const reason = disabled ? 'is disabled' : 'is not in the catalog';
+          res.status(400).json({
+            error: {
+              message: `Model '${requestedModel}' ${reason}. Use 'auto' (or omit the 'model' field) to auto-route, or call /v1/models for the available list.`,
+              type: 'invalid_request_error',
+              code: 'model_not_found',
+            },
+          });
+          return;
+        }
+      } else {
       const enabled = db.prepare('SELECT id FROM models WHERE model_id = ? AND enabled = 1').get(requestedModel) as { id: number } | undefined;
       if (enabled) {
         preferredModel = enabled.id;
@@ -695,6 +726,7 @@ proxyRouter.post('/completions', async (req: Request, res: Response) => {
           },
         });
         return;
+      }
       }
     }
   }
@@ -1330,6 +1362,37 @@ proxyRouter.post('/chat/completions', async (req: Request, res: Response) => {
       preferredModel = (sticky != null && groupChain.some(r => r.model_db_id === sticky)) ? sticky : undefined;
     } else {
       // Unify OFF, or an id that isn't in the catalog: legacy single-row pin.
+      // auxiliary_config: task_type acts as a virtual model group
+      if (isValidTaskType(requestedModel)) {
+        const auxRows = db.prepare(
+          'SELECT model_db_id FROM auxiliary_config WHERE task_type = ? AND enabled = 1 ORDER BY priority ASC'
+        ).all(requestedModel) as { model_db_id: number }[];
+        if (auxRows.length > 0) {
+          groupChain = resolveModelGroupCandidates(auxRows.map(r => r.model_db_id));
+          if (groupChain.length === 0) {
+            res.status(400).json({
+              error: {
+                message: `Model '${requestedModel}' has no providers with an enabled key. Use 'auto' (or omit the 'model' field) to auto-route, or call /v1/models for the available list.`,
+                type: 'invalid_request_error',
+                code: 'model_not_found',
+              },
+            });
+            return;
+          }
+          stickyStrategyKey = requestedModel;
+        } else {
+          const disabled = db.prepare('SELECT id FROM models WHERE model_id = ?').get(requestedModel) as { id: number } | undefined;
+          const reason = disabled ? 'is disabled' : 'is not in the catalog';
+          res.status(400).json({
+            error: {
+              message: `Model '${requestedModel}' ${reason}. Use 'auto' (or omit the 'model' field) to auto-route, or call /v1/models for the available list.`,
+              type: 'invalid_request_error',
+              code: 'model_not_found',
+            },
+          });
+          return;
+        }
+      } else {
       const enabled = db.prepare('SELECT id FROM models WHERE model_id = ? AND enabled = 1').get(requestedModel) as { id: number } | undefined;
       if (enabled) {
         preferredModel = enabled.id;
@@ -1344,6 +1407,7 @@ proxyRouter.post('/chat/completions', async (req: Request, res: Response) => {
           },
         });
         return;
+      }
       }
     }
   } else {
