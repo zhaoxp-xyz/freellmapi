@@ -10,6 +10,10 @@ const VALID_TASK_TYPES = [
   'compression',
   'general',
   'skillhub',
+  'approval',
+  'mcp',
+  'curator',
+  'tirlegen',
 ] as const;
 
 export function getValidTaskTypes(): string[] {
