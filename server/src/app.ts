@@ -13,6 +13,7 @@ import { profilesRouter } from './routes/profiles.js';
 import { embeddingsRouter } from './routes/embeddings.js';
 import { mediaRouter } from './routes/media.js';
 import { analyticsRouter } from './routes/analytics.js';
+import auxiliaryRouter from './routes/auxiliary.js';
 import { healthRouter } from './routes/health.js';
 import { settingsRouter } from './routes/settings.js';
 import { premiumRouter } from './routes/premium.js';
@@ -69,6 +70,7 @@ export function createApp(config?: Config) {
   app.use('/api/embeddings', requireAuth, embeddingsRouter);
   app.use('/api/media', requireAuth, mediaRouter);
   app.use('/api/analytics', requireAuth, analyticsRouter);
+  app.use('/api/auxiliary', requireAuth, auxiliaryRouter);
   app.use('/api/health', requireAuth, healthRouter);
   app.use('/api/settings', requireAuth, settingsRouter);
   app.use('/api/premium', requireAuth, premiumRouter);
