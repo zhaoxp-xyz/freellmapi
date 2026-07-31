@@ -18,7 +18,7 @@ const PLATFORMS = [
   'google', 'groq', 'cerebras', 'nvidia', 'mistral',
   'openrouter', 'github', 'cohere', 'cloudflare', 'zhipu', 'ollama',
   'kilo', 'pollinations', 'llm7', 'huggingface', 'opencode', 'ovh', 'agnes', 'reka', 'siliconflow',
-  'routeway', 'bazaarlink', 'ainative', 'aihorde', 'openmodel', 'custom',
+  'routeway', 'bazaarlink', 'ainative', 'nara', 'bynara', 'aiand', 'aihorde', 'openmodel', 'custom',
 ] as const;
 
 const ALLOWED_IMPORT_EXTENSIONS = new Set(['.env', '.json', '.jsonc', '.md', '.txt']);

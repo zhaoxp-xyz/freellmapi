@@ -64,6 +64,15 @@ export type Platform =
   // its own proprietary Agnes models; the free key comes from
   // platform.agnes-ai.com (no card).
   | 'agnes'
+  // NaraRouter — OpenAI-compatible aggregator (router.bynara.id/v1). Free key
+  // after Telegram channel/link verification; free-plan routes reset daily.
+  | 'nara'
+  // Bynara Router — NaraRouter twin entry, own free plan (7M tokens/day,
+  // 10 RPM, 6 free models incl. agnes-2.0-flash). Key from router.bynara.id.
+  | 'bynara'
+  // AIAND (Japan) — OpenAI-compatible (api.aiand.com/v1). Org-level key from
+  // console.aiand.com; free model qwen/qwen3.6-27b ($0).
+  | 'aiand'
   // Reka — OpenAI-compatible. Native multimodal models (reka-edge takes
   // image/video); free via a recurring monthly credit grant, key from
   // platform.reka.ai (no card).

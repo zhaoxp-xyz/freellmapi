@@ -200,6 +200,46 @@ register(new OpenAICompatProvider({
   platform: 'agnes',
   name: 'Agnes AI',
   baseUrl: 'https://apihub.agnes-ai.com/v1',
+  extraHeaders: {
+    'HTTP-Referer': 'http://localhost:3001',
+    'X-Title': 'FreeLLMAPI',
+  },
+  timeoutMs: 60_000,
+}));
+
+// NaraRouter — OpenAI-compatible aggregator (router.bynara.id/v1). Free plan
+// requires a no-card API key plus Telegram channel/link verification. Live
+// probed 2026-07-09: mistral-large, mistral-medium-3-5, tencent-hy3 answered
+// 200 with a zero-balance account.
+register(new OpenAICompatProvider({
+  platform: 'nara',
+  name: 'NaraRouter',
+  baseUrl: 'https://router.bynara.id/v1',
+}));
+
+// Bynara Router — NaraRouter twin entry (router.bynara.id/v1), its own free
+// plan: 7M tokens/day + 10 RPM (no card; key via Telegram verification).
+// Free-plan models: agnes-2.0-flash, agnes-2.5-flash, mistral-large,
+// mistral-medium-3-5, nemotron-3-ultra, stepfun-3.7-flash.
+register(new OpenAICompatProvider({
+  platform: 'bynara',
+  name: 'Bynara Router',
+  baseUrl: 'https://router.bynara.id/v1',
+  extraHeaders: {
+    'HTTP-Referer': 'http://localhost:3001',
+    'X-Title': 'FreeLLMAPI',
+  },
+  timeoutMs: 60_000,
+}));
+
+// AIAND (Japan) — OpenAI-compatible (api.aiand.com/v1). Org-level key from
+// console.aiand.com → Organizations → API Keys. Free model:
+// qwen/qwen3.6-27b (262K context, reasoning + tool_calling, $0 in/out).
+// Model IDs carry a provider prefix (e.g. qwen/qwen3.6-27b).
+register(new OpenAICompatProvider({
+  platform: 'aiand',
+  name: 'AIAND',
+  baseUrl: 'https://api.aiand.com/v1',
 }));
 
 // Chutes was evaluated for V11 and dropped: probe with a free-tier key

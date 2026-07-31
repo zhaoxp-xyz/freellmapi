@@ -32,6 +32,10 @@ export const PREFIX_MAP: Record<string, string> = {
   ROUTEWAY_: 'routeway',
   BAZAARLINK_: 'bazaarlink',
   AINATIVE_: 'ainative',
+  NARA_: 'nara',
+  NARAROUTER_: 'nara',
+  BYNARA_: 'bynara',
+  AIAND_: 'aiand',
   AIHORDE_: 'aihorde',
 };
 
@@ -45,6 +49,11 @@ export const AUTH_JSON_PROVIDER_MAP: Record<string, string> = {
   nvidia: 'nvidia',
   'opencode-zen': 'opencode',
   opencode: 'opencode',
+  agnes: 'agnes',
+  nara: 'nara',
+  bynara: 'bynara',
+  'nara-router': 'nara',
+  aiand: 'aiand',
 };
 
 export function detectPlatform(prefix: string): string | null {
