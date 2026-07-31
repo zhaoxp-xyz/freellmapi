@@ -169,6 +169,7 @@ register(new OpenAICompatProvider({
   platform: 'opencode',
   name: 'OpenCode Zen',
   baseUrl: 'https://opencode.ai/zen/v1',
+  timeoutMs: 120_000,
 }));
 
 // OVHcloud AI Endpoints — OpenAI-compatible. Two free modes: anonymous
@@ -204,7 +205,7 @@ register(new OpenAICompatProvider({
     'HTTP-Referer': 'http://localhost:3001',
     'X-Title': 'FreeLLMAPI',
   },
-  timeoutMs: 60_000,
+  timeoutMs: 120_000,
 }));
 
 // NaraRouter — OpenAI-compatible aggregator (router.bynara.id/v1). Free plan
@@ -215,6 +216,7 @@ register(new OpenAICompatProvider({
   platform: 'nara',
   name: 'NaraRouter',
   baseUrl: 'https://router.bynara.id/v1',
+  timeoutMs: 120_000,
 }));
 
 // Bynara Router — NaraRouter twin entry (router.bynara.id/v1), its own free
@@ -229,7 +231,7 @@ register(new OpenAICompatProvider({
     'HTTP-Referer': 'http://localhost:3001',
     'X-Title': 'FreeLLMAPI',
   },
-  timeoutMs: 60_000,
+  timeoutMs: 120_000,
 }));
 
 // AIAND (Japan) — OpenAI-compatible (api.aiand.com/v1). Org-level key from
