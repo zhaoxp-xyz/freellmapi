@@ -415,6 +415,17 @@ export interface ResolvedChain {
   strategyKey: string;
 }
 
+const VALID_TASK_TYPES = [
+  'vision', 'coding', 'webextract', 'videogen', 'tts', 'imagegeneration',
+  'compression', 'general', 'skillhub', 'approval', 'mcp', 'curator', 'tirlegen', 'embedding',
+] as const;
+
+type TaskType = (typeof VALID_TASK_TYPES)[number];
+
+function isValidTaskType(t: string): t is TaskType {
+  return (VALID_TASK_TYPES as readonly string[]).includes(t);
+}
+
 const GLOBAL_SORT_ALIASES: Record<string, string> = {
   smart: 'smart', smartest: 'smart', intelligence: 'smart',
   fast: 'fast', fastest: 'fast', speed: 'fast',
@@ -471,6 +482,25 @@ function getChainByProfileName(db: Database, name: string): ChainRow[] | null {
   `).all(profile.id) as ChainRow[];
 }
 
+/**
+ * Resolve a task-type chain from auxiliary_config: ordered model list for a
+ * named task (vision, coding, webextract, ...). Mirrors the shape of
+ * getChainByProfileName so routeRequest can consume it identically.
+ */
+function getChainByTaskType(db: Database, taskType: string): ChainRow[] {
+  return db.prepare(`
+    SELECT ac.model_db_id, ac.priority, ac.enabled,
+           m.platform, m.model_id, m.display_name, m.intelligence_rank,
+           m.size_label, m.monthly_token_budget,
+           m.rpm_limit, m.rpd_limit, m.tpm_limit, m.tpd_limit, m.supports_vision,
+           m.supports_tools, m.context_window, m.key_id
+    FROM auxiliary_config ac
+    JOIN models m ON m.id = ac.model_db_id AND m.enabled = 1
+    WHERE ac.task_type = ? AND ac.enabled = 1
+    ORDER BY ac.priority ASC
+  `).all(taskType) as ChainRow[];
+}
+
 function getChainByGlobalSort(db: Database, globalAxis: string): ChainRow[] {
   const allEnabled = db.prepare(`
     SELECT m.id as model_db_id, 0 as priority, 1 as enabled,
@@ -520,6 +550,17 @@ export function resolveRoutingChain(modelString: string | undefined): ResolvedCh
       throw err;
     }
     return { chain, strategyKey: `auto:${globalAxis}` };
+  }
+
+  // Task-type chains (auxiliary_config) — auto:vision, auto:coding, ...
+  if (isValidTaskType(suffix)) {
+    const chain = getChainByTaskType(db, suffix);
+    if (chain.length === 0) {
+      const err = new Error(`Task type '${suffix}' has no enabled models. Add models to this task chain in the dashboard.`) as any;
+      err.status = 400;
+      throw err;
+    }
+    return { chain, strategyKey: `auto:${suffix}` };
   }
 
   const chain = getChainByProfileName(db, suffix);
