@@ -415,9 +415,12 @@ export interface ResolvedChain {
   strategyKey: string;
 }
 
+// Must mirror Hermes's auxiliary model names so auto:<task_type> calls line
+// up with what the client actually requests (main chat = coder, auxiliary =
+// vision/webextract/compression/skillhub/approval/mcp/general/tts/embedding).
 const VALID_TASK_TYPES = [
-  'vision', 'coding', 'webextract', 'videogen', 'tts', 'imagegeneration',
-  'compression', 'general', 'skillhub', 'approval', 'mcp', 'curator', 'tirlegen', 'embedding',
+  'vision', 'coder', 'webextract', 'compression', 'general', 'skillhub',
+  'approval', 'mcp', 'tts', 'embedding',
 ] as const;
 
 type TaskType = (typeof VALID_TASK_TYPES)[number];
