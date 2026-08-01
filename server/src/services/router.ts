@@ -734,6 +734,17 @@ export interface ResolvedChain {
   strategyKey: string;
 }
 
+const VALID_TASK_TYPES = [
+  'vision', 'coder', 'webextract', 'compression', 'general', 'skillhub',
+  'approval', 'mcp', 'tts', 'embedding',
+] as const;
+
+type TaskType = (typeof VALID_TASK_TYPES)[number];
+
+export function isValidTaskType(t: string): t is TaskType {
+  return (VALID_TASK_TYPES as readonly string[]).includes(t);
+}
+
 const GLOBAL_SORT_ALIASES: Record<string, string> = {
   smart: 'smart', smartest: 'smart', intelligence: 'smart',
   fast: 'fast', fastest: 'fast', speed: 'fast',
@@ -789,6 +800,25 @@ function getChainByProfileName(db: Db, name: string): ChainRow[] | null {
   `).all(profile.id) as ChainRow[];
 }
 
+/**
+ * Resolve a task-type chain from auxiliary_config: ordered model list for a
+ * named task (vision, coding, webextract, ...). Mirrors the shape of
+ * getChainByProfileName so routeRequest can consume it identically.
+ */
+function getChainByTaskType(db: Db, taskType: string): ChainRow[] {
+  return db.prepare(`
+    SELECT ac.model_db_id, ac.priority, ac.enabled,
+           m.platform, m.model_id, m.display_name, m.intelligence_rank,
+           m.size_label, m.monthly_token_budget,
+           m.rpm_limit, m.rpd_limit, m.tpm_limit, m.tpd_limit, m.supports_vision,
+           m.supports_tools, m.context_window, m.key_id, m.endpoint_scope
+    FROM auxiliary_config ac
+    JOIN models m ON m.id = ac.model_db_id AND m.enabled = 1
+    WHERE ac.task_type = ? AND ac.enabled = 1
+    ORDER BY ac.priority ASC
+  `).all(taskType) as ChainRow[];
+}
+
 function getChainByGlobalSort(db: Db, globalAxis: string): ChainRow[] {
   // A global sort ignores the chain's ORDER, not its enable flags: a model the
   // operator switched off — in the catalog or just for auto routing — stays off
@@ -830,6 +860,19 @@ export function resolveRoutingChain(modelString: string | undefined): ResolvedCh
   }
 
   const lower = modelString.toLowerCase();
+
+  // Bare task-type name (vision/coder/webextract/...) — Hermes auxiliary
+  // calls send the task name directly as the model field.
+  if (isValidTaskType(lower)) {
+    const chain = getChainByTaskType(db, lower);
+    if (chain.length === 0) {
+      const err = new Error(`Task type '${lower}' has no enabled models. Add models to this task chain in the dashboard.`) as any;
+      err.status = 400;
+      throw err;
+    }
+    return { chain, strategyKey: `task:${lower}` };
+  }
+
   if (!lower.startsWith('auto:')) {
     return { chain: getActiveChain(db), strategyKey: 'auto' };
   }
@@ -848,6 +891,17 @@ export function resolveRoutingChain(modelString: string | undefined): ResolvedCh
       throw err;
     }
     return { chain, strategyKey: `auto:${globalAxis}` };
+  }
+
+  // Task-type chains (auxiliary_config) — auto:vision, auto:coding, ...
+  if (isValidTaskType(suffix)) {
+    const chain = getChainByTaskType(db, suffix);
+    if (chain.length === 0) {
+      const err = new Error(`Task type '${suffix}' has no enabled models. Add models to this task chain in the dashboard.`) as any;
+      err.status = 400;
+      throw err;
+    }
+    return { chain, strategyKey: `auto:${suffix}` };
   }
 
   const chain = getChainByProfileName(db, suffix);
