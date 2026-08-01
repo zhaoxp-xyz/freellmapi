@@ -62,20 +62,19 @@
 
 ## 4. 当前进度（每次会话结束时更新）
 
-- **2026-08-01 阶段 1 进行中（独立模块移植）**：
-  - ✅ 阶段 0 完成并验收（基线绿、82 模型、红线未动、用户已确认）
-  - ✅ 切回 merge-upstream-v0.6.6 分支（工作区 AGENTS.md 已恢复）
-  - 📌 **阶段 1 移植清单（已调研 + 用户确认，2026-08-01）**：
-    1. `server/src/db/migrations/20260731_120000_auxiliary_config.ts`（main 独有，纯新增）
-    2. `server/src/db/migrations/20260801_080000_auxiliary_config_unique.ts`（main 独有，纯新增）
-    3. `server/src/routes/auxiliary.ts`（main 独有，官方无此路由）
-    4. `server/src/providers/openmodel-messages.ts`（main 独有，官方 openai-compat 不支持 Anthropic 协议 → 必须移植；**官方 base.ts 接口已进化，需适配**）
-    5. ~~bynara 平台块~~ **取消**：nara/bynara 同后端（router.bynara.id/v1 双入口），官方 v0.6.6 已有 nara，不重复添加（用户确认 2026-08-01）
-    6. ~~aiand 平台块~~ **取消**：已弃用（预付制 $0 全 404，走 groq 替代），不移植（用户确认 2026-08-01）
-  - 📌 **timeoutMs 决策（重要）**：官方 v0.6.6 已有 `lib/provider-timeout.ts`（`PROVIDER_TIMEOUT_<PLATFORM>` 环境变量机制），比我们硬编码 120s 优雅。**代码保持官方原样（agnes 60s），40 部署时用 systemd Environment=`PROVIDER_TIMEOUT_AGNES=120000` 等覆盖**（阶段 5 处理，不污染代码）
-  - 📌 **官方已含而我们不需要移植的**：agnes/nara/opencode 平台（官方自带）、timeoutMs 机制（官方 provider-timeout.ts）、catalog-sync/模型生命周期等
-  - ⏳ 待办：opencode 执行移植（4 个独立文件）→ build → 每文件独立 commit
-  - ⏳ 待办：移植后验证 /v1/models 新平台可见 + 40 key 实测上游 chat 200
+- **2026-08-01 阶段 1 完成 ✅（opencode 执行 + Hermes 独立验收）**：
+  - ✅ **4 个独立文件移植完成**（3 个 commit，build 通过）：
+    - `a8f7100` feat(auxiliary): port auxiliary_config migrations from fork（建表 + UNIQUE 约束，78 行）
+    - `2e51447` feat(auxiliary): port /api/auxiliary route from fork（107 行）
+    - `62a6b94` feat(providers): port OpenModel (Anthropic Messages) provider from fork（172 行 + shared/types.ts 加 'openmodel' 平台）
+  - ✅ **独立验收**：npm run build -w server 我自己跑 tsc 通过 exit 0；openmodel 与官方新 fetchWithTimeout 签名天然兼容
+  - ✅ **Provider 增删架构规范落盘**（`35e05c4`）：
+    - `docs/PROVIDERS.md`（4 层架构：代码层/模型层/知识层/流程层 + 15+ 平台清单 + 增删 SOP + 免费判定标准）
+    - AGENTS.md §8 同步精简版（opencode 每次自动加载）
+    - 宿主目录 `~/hermes-project/freellmapi/PROVIDERS-DESIGN-v1.0.md` 归档
+  - 📌 **按用户指示调整**：bynara 不移植（与 nara 同后端双入口，官方已有 nara）；aiand 不移植（已弃用预付制坑，走 groq）
+  - ⏳ 待办：5 个 commit 推送远端（Hermes 统一推送）
+  - ⏳ 待办：阶段 2 核心配置合并（key-parser PREFIX_MAP / providers/index.ts 平台注册 / defaults.ts migration 注册 / auxiliary 挂载）
   - 📌 经验：opencode serve v1.18.9 API 是 `/api` 前缀版（`POST /api/session`、`POST /api/session/{id}/prompt`，body=`{"prompt":{"text":...},"delivery":"steer"}`）；旧 skill 里无前缀 + parts 数组格式已过时
 
 ## 5. 已实测修正事实（与官方 AGENTS.md/代码不一致，以本表为准）
