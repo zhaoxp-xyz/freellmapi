@@ -62,12 +62,16 @@
 
 ## 4. 当前进度（每次会话结束时更新）
 
-- **2026-08-01 阶段 0 进行中**：
-  - ✅ 冻结版计划落盘：40 仓库 `MERGE-UPSTREAM-PLAN.md`（commit 6376240）+ 本机 plans + skill 锚定
-  - ✅ 工作区 `~/freellmapi-auxiliary` 建好，分支 `merge-upstream-v0.6.6` = 官方 76c3e6b
-  - ✅ AGENTS.md（本文件）创建
-  - ⏳ 待办：npm install + npm run build 首次验证（opencode 执行）
-  - ⏳ 待办：临时起服 /api/ping + /v1/models 验证（380 模型）
+- **2026-08-01 阶段 0 完成 ✅（Hermes 独立验收，opencode 执行）**：
+  - ✅ 冻结版计划落盘：40 仓库 `MERGE-UPSTREAM-PLAN.md`（commit 6376240）+ 本机 `~/hermes-project/freellmapi/FROZEN-PLAN-v1.0.md` + skill 锚定
+  - ✅ 工作区 `~/freellmapi-auxiliary`，分支 `merge-upstream-v0.6.6` = 官方 76c3e6b
+  - ✅ AGENTS.md（本文件）创建（commit 8a36c5d）
+  - ✅ opencode serve :4096 运行中（v1.18.9，正确端点带 /api 前缀）
+  - ✅ npm install 成功（768 包，18s）+ npm run build 成功（server/cli/client 三包 dist 齐全）
+  - ✅ 临时起服（PORT=3002，避开红线 3001）：/api/ping 200；/v1/models 用 unified key 返回 **82 模型**（官方 catalog-sync v2026.07.31 默认子集——"380 模型"是官网全量宣传数，本地基线就是 82，完整扩展需阶段 1 绑定平台 key）
+  - ✅ 红线目录 ~/freellmapi 全程未动
+  - 📌 阶段 0 待用户确认 → 进阶段 1
+  - 📌 经验：opencode serve v1.18.9 API 是 `/api` 前缀版（`POST /api/session`、`POST /api/session/{id}/prompt`，body=`{"prompt":{"text":...},"delivery":"steer"}`）；旧 skill 里无前缀 + parts 数组格式已过时
 
 ## 5. 已实测修正事实（与官方 AGENTS.md/代码不一致，以本表为准）
 
