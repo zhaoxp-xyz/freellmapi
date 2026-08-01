@@ -62,15 +62,20 @@
 
 ## 4. 当前进度（每次会话结束时更新）
 
-- **2026-08-01 阶段 0 完成 ✅（Hermes 独立验收，opencode 执行）**：
-  - ✅ 冻结版计划落盘：40 仓库 `MERGE-UPSTREAM-PLAN.md`（commit 6376240）+ 本机 `~/hermes-project/freellmapi/FROZEN-PLAN-v1.0.md` + skill 锚定
-  - ✅ 工作区 `~/freellmapi-auxiliary`，分支 `merge-upstream-v0.6.6` = 官方 76c3e6b
-  - ✅ AGENTS.md（本文件）创建（commit 8a36c5d）
-  - ✅ opencode serve :4096 运行中（v1.18.9，正确端点带 /api 前缀）
-  - ✅ npm install 成功（768 包，18s）+ npm run build 成功（server/cli/client 三包 dist 齐全）
-  - ✅ 临时起服（PORT=3002，避开红线 3001）：/api/ping 200；/v1/models 用 unified key 返回 **82 模型**（官方 catalog-sync v2026.07.31 默认子集——"380 模型"是官网全量宣传数，本地基线就是 82，完整扩展需阶段 1 绑定平台 key）
-  - ✅ 红线目录 ~/freellmapi 全程未动
-  - 📌 阶段 0 待用户确认 → 进阶段 1
+- **2026-08-01 阶段 1 进行中（独立模块移植）**：
+  - ✅ 阶段 0 完成并验收（基线绿、82 模型、红线未动、用户已确认）
+  - ✅ 切回 merge-upstream-v0.6.6 分支（工作区 AGENTS.md 已恢复）
+  - 📌 **阶段 1 移植清单（已调研 + 用户确认，2026-08-01）**：
+    1. `server/src/db/migrations/20260731_120000_auxiliary_config.ts`（main 独有，纯新增）
+    2. `server/src/db/migrations/20260801_080000_auxiliary_config_unique.ts`（main 独有，纯新增）
+    3. `server/src/routes/auxiliary.ts`（main 独有，官方无此路由）
+    4. `server/src/providers/openmodel-messages.ts`（main 独有，官方 openai-compat 不支持 Anthropic 协议 → 必须移植；**官方 base.ts 接口已进化，需适配**）
+    5. ~~bynara 平台块~~ **取消**：nara/bynara 同后端（router.bynara.id/v1 双入口），官方 v0.6.6 已有 nara，不重复添加（用户确认 2026-08-01）
+    6. ~~aiand 平台块~~ **取消**：已弃用（预付制 $0 全 404，走 groq 替代），不移植（用户确认 2026-08-01）
+  - 📌 **timeoutMs 决策（重要）**：官方 v0.6.6 已有 `lib/provider-timeout.ts`（`PROVIDER_TIMEOUT_<PLATFORM>` 环境变量机制），比我们硬编码 120s 优雅。**代码保持官方原样（agnes 60s），40 部署时用 systemd Environment=`PROVIDER_TIMEOUT_AGNES=120000` 等覆盖**（阶段 5 处理，不污染代码）
+  - 📌 **官方已含而我们不需要移植的**：agnes/nara/opencode 平台（官方自带）、timeoutMs 机制（官方 provider-timeout.ts）、catalog-sync/模型生命周期等
+  - ⏳ 待办：opencode 执行移植（4 个独立文件）→ build → 每文件独立 commit
+  - ⏳ 待办：移植后验证 /v1/models 新平台可见 + 40 key 实测上游 chat 200
   - 📌 经验：opencode serve v1.18.9 API 是 `/api` 前缀版（`POST /api/session`、`POST /api/session/{id}/prompt`，body=`{"prompt":{"text":...},"delivery":"steer"}`）；旧 skill 里无前缀 + parts 数组格式已过时
 
 ## 5. 已实测修正事实（与官方 AGENTS.md/代码不一致，以本表为准）
@@ -79,7 +84,7 @@
 |---|---|---|
 | agnes 平台 | keyless: true | **实际要 key**，请求不带 key 必 401（keyless 是 bug，已修） |
 | bynara | keyless: false | 确认要 key（sk-nry- 前缀），与官方一致 |
-| 推理模型 timeout | 60s | **必须 120s**（agnese-2.5-pro-alpha 非流式单次 60-120s，60s 必 abort；流式不受限） |
+| 推理模型 timeout | 60s | **必须 120s**（agnese-2.5-pro-alpha 非流式单次 60-120s，60s 必 abort；流式不受限）→ 官方 v0.6.6 用 PROVIDER_TIMEOUT_<PLATFORM> 环境变量解决，40 部署时设环境变量 |
 | catalog-sync 删模型 | 同步删 | **本地扩展平台模型必须 key_id 绑定**（否则被删），size_label='Custom' 也可防 |
 | migration 注册 | db:migration:up | **只跑 defaults.ts 硬编码列表**（不扫目录），新 migration 须注册 3 处（import 编译后 .js / filename 常量 / 数组项）且先 build |
 | aiand | 文档标 Free | **预付制坑**：$0 余额全 404，已弃用走 groq；40 上 key enabled=0 保留 |
