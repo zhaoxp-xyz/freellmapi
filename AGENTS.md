@@ -113,3 +113,25 @@ npm run test -w server
 - 改动前先 `git log --oneline -5` 看当前状态；改动后 `git diff --stat` 自查；构建失败先看错误再修，不盲试。
 - 涉及红线目录（~/freellmapi）的任何路径：**禁止读写**。所有工作在 ~/freellmapi-auxiliary 内。
 - 拿不准的接口/行为：先 grep 官方代码确认，不臆测；复杂决策记录到本文件第 4 节。
+
+## 8. Provider 增删架构规范（2026-08-01 用户确认，强制遵守）
+
+> **任何 provider 增/删/改必须按 `docs/PROVIDERS.md` 执行**（详细 SOP 在那）。本节是精简版，opencode 每次开工必读。
+
+### 4 层架构
+- **代码层**：`providers/index.ts` 集中 `register()`（Map<Platform, BaseProvider>）；OpenAI 兼容用 OpenAICompatProvider，特殊协议独立类。删平台**留注释**记录原因。
+- **模型层**：官方 catalog 模型 → catalog-sync 自动管；**本地扩展平台模型必须 `key_id` 绑定**（或 size_label='Custom'）防 catalog-sync 误删；删模型清 auxiliary_config 孤儿。
+- **知识层**：`docs/PROVIDERS.md` 平台清单表（端点/key 前缀/免费规则/模型/状态/特殊配置），**增删后必须更新**。
+- **流程层**：增 7 步（调研免费→判定→代码6点→模型入库绑key→实测→更新清单→commit）/ 删 6 步（确认原因→代码留注释→key停用enabled=0→模型清理→更新清单→commit）。
+
+### timeout 机制
+- **代码不硬编码大 timeout**。官方 v0.6.6 用 `PROVIDER_TIMEOUT_<PLATFORM>` 环境变量（lib/provider-timeout.ts）。推理模型 40 部署时 systemd 设 `PROVIDER_TIMEOUT_AGNES=120000` 等。
+
+### 免费判定
+- 真免费（pricing=0）→ 接入；预付制（$0 全 404 需充值，如 aiand）→ **不接入**，找替代（aiand→groq）；已转收费 → 移除或 key 停用。
+- 平台增删后 3 处必须同步：代码层 / PROVIDERS.md 清单 / auxiliary_config（如有模型引用）。
+
+### 当前平台状态速查（详见 docs/PROVIDERS.md 全表）
+- active: agnes, nara, bynara(同 nara 后端), opencode, groq, openrouter, mistral, nvidia, zhipu, github, modelscope(官方)
+- degraded: openmodel（全付费，待验证）
+- dropped: aiand（预付制坑，弃用走 groq）
