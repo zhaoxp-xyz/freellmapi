@@ -73,7 +73,12 @@
     - AGENTS.md §8 同步精简版（opencode 每次自动加载）
     - 宿主目录 `~/hermes-project/freellmapi/PROVIDERS-DESIGN-v1.0.md` 归档
   - 📌 **按用户指示调整**：bynara 不移植（与 nara 同后端双入口，官方已有 nara）；aiand 不移植（已弃用预付制坑，走 groq）
-  - ⏳ 待办：阶段 2 核心配置合并（key-parser PREFIX_MAP / providers/index.ts 平台注册 / defaults.ts migration 注册 / auxiliary 挂载）
+- **2026-08-01 阶段 2 完成 ✅（opencode 执行 + Hermes 独立验收，commit e9db2a2）**：
+  - ✅ **5 个接线点全部到位**：defaults.ts 注册 2 个 auxiliary migrations（3 处：import/FILENAME/数组）；app.ts 挂载 `/api/auxiliary`（requireAuth）；providers/index.ts 注册 OpenModelMessagesProvider（degraded 注释）；key-parser.ts PREFIX_MAP 加 OPENMODEL_/OM_ + AUTH_JSON_PROVIDER_MAP 加 openmodel
+  - ✅ **3 个构建错误修复**：auxiliary.ts 默认导出→命名导出 auxiliaryRouter；2 个 migrations 的 better-sqlite3 Database 类型→官方 Db 类型
+  - ✅ **独立验证**：npm run build -w server tsc 通过（我自己跑）
+  - ✅ **阶段 1+2 已推送远端**（6f99e83 → e9db2a2）
+  - ⏳ 待办：阶段 3 router 重移植（官方新 router.ts fallback-loop/attempt-trace + 我们 auxiliary 链逻辑）
   - 📌 经验：opencode serve v1.18.9 API 是 `/api` 前缀版（`POST /api/session`、`POST /api/session/{id}/prompt`，body=`{"prompt":{"text":...},"delivery":"steer"}`）；旧 skill 里无前缀 + parts 数组格式已过时
 
 ## 5. 已实测修正事实（与官方 AGENTS.md/代码不一致，以本表为准）
