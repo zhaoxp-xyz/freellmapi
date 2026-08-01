@@ -425,7 +425,7 @@ const VALID_TASK_TYPES = [
 
 type TaskType = (typeof VALID_TASK_TYPES)[number];
 
-function isValidTaskType(t: string): t is TaskType {
+export function isValidTaskType(t: string): t is TaskType {
   return (VALID_TASK_TYPES as readonly string[]).includes(t);
 }
 
@@ -535,6 +535,18 @@ export function resolveRoutingChain(modelString: string | undefined): ResolvedCh
   }
 
   const lower = modelString.toLowerCase();
+
+  // Bare task-type name (vision/coder/webextract/...) — Hermes auxiliary
+  // calls send the task name directly as the model field.
+  if (isValidTaskType(lower)) {
+    const chain = getChainByTaskType(db, lower);
+    if (chain.length === 0) {
+      const err = new Error(`Task type '${lower}' has no enabled models. Add models to this task chain in the dashboard.`) as any;
+      err.status = 400;
+      throw err;
+    }
+    return { chain, strategyKey: `task:${lower}` };
+  }
   if (!lower.startsWith('auto:')) {
     return { chain: getActiveChain(db), strategyKey: 'auto' };
   }

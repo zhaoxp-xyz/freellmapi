@@ -3,7 +3,7 @@ import { Router } from 'express';
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 import type { ChatMessage, ChatToolCall, ModelListRow } from '@freellmapi/shared/types.js';
-import { routeRequest, resolveRoutingChain, resolveModelGroupCandidates, recordRateLimitHit, recordSuccess, hasEnabledVisionModel, hasEnabledToolsModel, type RouteResult, type ResolvedChain, type ChainRow } from '../services/router.js';
+import { routeRequest, resolveRoutingChain, resolveModelGroupCandidates, recordRateLimitHit, recordSuccess, hasEnabledVisionModel, hasEnabledToolsModel, isValidTaskType, type RouteResult, type ResolvedChain, type ChainRow } from '../services/router.js';
 import { recordRequest, recordTokens, setCooldown, getCooldownDurationForLimit, PAYMENT_REQUIRED_COOLDOWN_MS, MODEL_FORBIDDEN_COOLDOWN_MS, learnLimitFromError } from '../services/ratelimit.js';
 import { runEmbeddings, EmbeddingsError } from '../services/embeddings.js';
 import { runImageGeneration, runSpeech, MediaError } from '../services/media.js';
@@ -652,14 +652,15 @@ proxyRouter.post('/completions', async (req: Request, res: Response) => {
   const estimatedTotal = estimatedInputTokens + max_tokens;
 
   let resolvedChain: ResolvedChain | undefined;
-  if (isAutoModel(requestedModel)) {
+  if (isAutoModel(requestedModel) || (requestedModel != null && isValidTaskType(requestedModel.toLowerCase()))) {
     resolvedChain = resolveRoutingChain(requestedModel);
   }
 
   let preferredModel: number | undefined;
   let groupChain: ChainRow[] | undefined;
 
-  if (!isAutoModel(requestedModel) && requestedModel) {
+  const isTaskTypeName = requestedModel != null && isValidTaskType(requestedModel.toLowerCase());
+  if (!isAutoModel(requestedModel) && !isTaskTypeName && requestedModel) {
     const db = getDb();
     const members = isUnifyEnabled() ? resolveRequestedIdToMembers(requestedModel, getModelGroups()) : null;
     if (members && members.length > 0) {
@@ -1229,7 +1230,7 @@ proxyRouter.post('/chat/completions', async (req: Request, res: Response) => {
   let resolvedChain: ResolvedChain | undefined;
   let strategyKey: string | undefined;
 
-  if (isAutoModel(requestedModel)) {
+  if (isAutoModel(requestedModel) || (requestedModel != null && isValidTaskType(requestedModel.toLowerCase()))) {
     resolvedChain = resolveRoutingChain(requestedModel);
     strategyKey = resolvedChain.strategyKey;
   }
@@ -1237,7 +1238,7 @@ proxyRouter.post('/chat/completions', async (req: Request, res: Response) => {
   // Context handoff only applies to auto-routed requests. Pinned-model requests
   // are deliberate client choices; injecting "you are taking over" there would
   // be semantically wrong.
-  const isAutoRouted = !requestedModel || isAutoModel(requestedModel);
+  const isAutoRouted = !requestedModel || isAutoModel(requestedModel) || (requestedModel != null && isValidTaskType(requestedModel.toLowerCase()));
   const handoffMode = isAutoRouted ? getContextHandoffMode() : ('off' as const);
   const sessionKey = handoffMode !== 'off' ? getSessionKey(messages, sessionIdHeader, strategyKey) : '';
   if (handoffMode !== 'off' && sessionKey) {
@@ -1263,7 +1264,7 @@ proxyRouter.post('/chat/completions', async (req: Request, res: Response) => {
   // successful provider without leaking stickiness across groups.
   let stickyStrategyKey: string | undefined = strategyKey;
 
-  if (isAutoModel(requestedModel)) {
+  if (isAutoModel(requestedModel) || (requestedModel != null && isValidTaskType(requestedModel.toLowerCase()))) {
     preferredModel = getStickyModel(messages, sessionIdHeader, strategyKey);
   } else if (requestedModel) {
     const db = getDb();
