@@ -73,7 +73,6 @@
     - AGENTS.md §8 同步精简版（opencode 每次自动加载）
     - 宿主目录 `~/hermes-project/freellmapi/PROVIDERS-DESIGN-v1.0.md` 归档
   - 📌 **按用户指示调整**：bynara 不移植（与 nara 同后端双入口，官方已有 nara）；aiand 不移植（已弃用预付制坑，走 groq）
-  - ⏳ 待办：5 个 commit 推送远端（Hermes 统一推送）
   - ⏳ 待办：阶段 2 核心配置合并（key-parser PREFIX_MAP / providers/index.ts 平台注册 / defaults.ts migration 注册 / auxiliary 挂载）
   - 📌 经验：opencode serve v1.18.9 API 是 `/api` 前缀版（`POST /api/session`、`POST /api/session/{id}/prompt`，body=`{"prompt":{"text":...},"delivery":"steer"}`）；旧 skill 里无前缀 + parts 数组格式已过时
 

@@ -104,4 +104,4 @@ router.delete('/:modelDbId', (req, res) => {
   res.json({ success: true });
 });
 
-export default router;
+export const auxiliaryRouter = router;

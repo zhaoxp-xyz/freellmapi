@@ -7,6 +7,7 @@ import { CloudflareProvider } from './cloudflare.js';
 import { AIHordeProvider } from './aihorde.js';
 import { ModelScopeProvider } from './modelscope.js';
 import { PollinationsProvider } from './pollinations.js';
+import { OpenModelMessagesProvider } from './openmodel-messages.js';
 
 const providers = new Map<Platform, BaseProvider>();
 
@@ -179,6 +180,11 @@ register(new OpenAICompatProvider({
   name: 'OpenCode Zen',
   baseUrl: 'https://opencode.ai/zen/v1',
 }));
+
+// OpenModel — Anthropic Messages protocol provider.
+// All models are paid; registered as degraded until key verification is
+// completed on 40 (PROVIDER_TIMEOUT_OPENMODEL env var for slow non-streaming calls).
+register(new OpenModelMessagesProvider());
 
 // OVHcloud AI Endpoints — OpenAI-compatible. Two free modes: anonymous
 // (documented 2 req/min per IP per model — observed even stricter across

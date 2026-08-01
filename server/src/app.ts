@@ -26,6 +26,7 @@ import { statusRouter, providersRouter } from './routes/status.js';
 import { geminiRouter } from './routes/gemini.js';
 import { ollamaRouter } from './routes/ollama.js';
 import { urlTokenRouter } from './routes/url-tokens.js';
+import { auxiliaryRouter } from './routes/auxiliary.js';
 import { requireAuth } from './middleware/requireAuth.js';
 import { createProxyRateLimiter, createAdminRateLimiter } from './middleware/rateLimit.js';
 
@@ -138,6 +139,7 @@ export function createApp(config?: Config) {
   app.use('/api/media', requireAuth, mediaRouter);
   app.use('/api/analytics', requireAuth, analyticsRouter);
   app.use('/api/health', requireAuth, healthRouter);
+  app.use('/api/auxiliary', requireAuth, auxiliaryRouter);
   app.use('/api/settings', requireAuth, settingsRouter);
   app.use('/api/premium', requireAuth, premiumRouter);
   app.use('/api/cache', requireAuth, cacheRouter);

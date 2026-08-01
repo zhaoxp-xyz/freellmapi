@@ -1,4 +1,4 @@
-import type Database from 'better-sqlite3';
+import type { Db } from '../types.js';
 
 /**
  * Harden auxiliary_config: add UNIQUE(task_type, model_db_id) so the
@@ -6,7 +6,7 @@ import type Database from 'better-sqlite3';
  * Also add an index on task_type for chain lookups.
  * SQLite can't ALTER TABLE ADD CONSTRAINT — rebuild the table.
  */
-export function up(db: Database.Database): void {
+export function up(db: Db): void {
   // 1. dedupe existing rows keeping the lowest id (and its priority)
   db.prepare(`
     DELETE FROM auxiliary_config
@@ -34,7 +34,7 @@ export function up(db: Database.Database): void {
   `);
 }
 
-export function down(db: Database.Database): void {
+export function down(db: Db): void {
   db.exec(`
     CREATE TABLE auxiliary_config_old (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

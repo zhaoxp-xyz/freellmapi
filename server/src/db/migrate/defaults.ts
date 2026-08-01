@@ -17,6 +17,8 @@ import * as attemptErrorSummary from '../migrations/20260726_000006_attempt_erro
 import * as agentCompatibility from '../migrations/20260727_000001_agent_compatibility.js';
 import * as tombstoneProvenance from '../migrations/20260728_000001_tombstone_provenance.js';
 import * as customModelEndpointIdentity from '../migrations/20260729_000001_custom_model_endpoint_identity.js';
+import * as auxiliaryConfig from '../migrations/20260731_120000_auxiliary_config.js';
+import * as auxiliaryConfigUnique from '../migrations/20260801_080000_auxiliary_config_unique.js';
 
 export interface MigrationModule {
   up(db: Db): void;
@@ -46,6 +48,8 @@ export const ATTEMPT_ERROR_SUMMARY_FILENAME = '20260726_000006_attempt_error_sum
 export const AGENT_COMPATIBILITY_FILENAME = '20260727_000001_agent_compatibility.ts';
 export const TOMBSTONE_PROVENANCE_FILENAME = '20260728_000001_tombstone_provenance.ts';
 export const CUSTOM_MODEL_ENDPOINT_IDENTITY_FILENAME = '20260729_000001_custom_model_endpoint_identity.ts';
+export const AUXILIARY_CONFIG_FILENAME = '20260731_120000_auxiliary_config.ts';
+export const AUXILIARY_CONFIG_UNIQUE_FILENAME = '20260801_080000_auxiliary_config_unique.ts';
 
 export const DEFAULT_MIGRATIONS: readonly DefaultMigration[] = [
   { filename: LEGACY_BASELINE_FILENAME, module: legacyBaseline },
@@ -66,4 +70,6 @@ export const DEFAULT_MIGRATIONS: readonly DefaultMigration[] = [
   { filename: AGENT_COMPATIBILITY_FILENAME, module: agentCompatibility },
   { filename: TOMBSTONE_PROVENANCE_FILENAME, module: tombstoneProvenance },
   { filename: CUSTOM_MODEL_ENDPOINT_IDENTITY_FILENAME, module: customModelEndpointIdentity },
+  { filename: AUXILIARY_CONFIG_FILENAME, module: auxiliaryConfig },
+  { filename: AUXILIARY_CONFIG_UNIQUE_FILENAME, module: auxiliaryConfigUnique },
 ];
