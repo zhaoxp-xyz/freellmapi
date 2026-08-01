@@ -61,7 +61,8 @@
     "model": "模型",
     "provider": "提供方",
     "success": "成功",
-    "failures": "失败"
+    "failures": "失败",
+    "back": "返回"
   },
   "models": {
     "title": "模型",
@@ -111,7 +112,34 @@
     "noMatches": "没有符合筛选条件的模型。",
     "visionTab": "视觉模型",
     "coderTab": "编码模型",
-    "groupsTab": "模型组"
+    "groupsTab": "模型组",
+    "aggregateBudget": "{count}/月",
+    "aggregateBudgetTitle": "此模型所有提供商每月的免费令牌总数",
+    "backToModels": "返回模型列表",
+    "catalogModel": "目录",
+    "codeSnippetHeading": "使用此模型",
+    "contextWindow": "上下文",
+    "copyModelName": "复制模型名称",
+    "customModel": "自定义",
+    "displayName": "显示名称",
+    "dragToReorderGroup": "拖动以重排模型",
+    "inFallback": "在链中",
+    "localOverride": "本地覆盖",
+    "modelNotFound": "此模型不可用，或没有配置提供商。",
+    "providerCount": "{count} 个提供商",
+    "providerIdsHeading": "提供商模型 ID",
+    "providerIdsHint": "发送统一模型 ID 以跨所有提供商故障转移，或发送特定提供商的 ID 以固定一个提供商。",
+    "providersHeading": "提供此模型的提供商",
+    "rateRpd": "{count} RPD",
+    "rateRpm": "{count} RPM",
+    "rateTitle": "限速 — 没有固定的月度令牌预算",
+    "saveModelSettings": "保存模型设置",
+    "servedBy": "由 {providers} 提供",
+    "settingsHeading": "提供商设置",
+    "settingsHint": "对目录模型的本地编辑会在目录同步时保留。删除的目录模型会保持删除，直到您通过配置重新添加。",
+    "unifyToggle": "合并重复模型",
+    "unifyToggleHint": "将多个提供商提供的同一模型显示为一项，并在选择时跨其提供商故障转移。",
+    "viewProviders": "查看提供商"
   },
   "strategies": {
     "title": "路由策略",
@@ -224,7 +252,36 @@
     "keyCountOther": "{count} 个密钥",
     "proxyEnvHintBefore": "也可通过 ",
     "proxyEnvHintAfter": " 环境变量配置（优先生效）。留空则禁用。示例：",
-    "confirmRemove": "确认？"
+    "confirmRemove": "确认？",
+    "addAudioModel": "添加音频模型",
+    "addEmbeddingModel": "添加入口嵌入模型",
+    "addImageModel": "添加图像模型",
+    "chooseProvider": "选择提供商",
+    "customFamily": "家族",
+    "customFamilyPlaceholder": "默认为模型 ID",
+    "customModel": "模型",
+    "customType": "类型",
+    "customTypeAudio": "音频",
+    "customTypeChat": "对话",
+    "customTypeEmbedding": "嵌入",
+    "customTypeImage": "图像",
+    "importFileCount": "已选 {count} 个",
+    "importFiles": "文件",
+    "importKeys": "导入提供商密钥",
+    "importKeysDescription": "上传 .env、JSON、JSONC、Markdown 或文本文件。",
+    "importResult": "已导入 {imported} 个；失败 {failed} 个。",
+    "importSelected": "导入 {count} 个",
+    "importing": "导入中…",
+    "keyName": "密钥名称",
+    "keyValue": "密钥值",
+    "moreItems": "还有 {count} 个",
+    "noImportSelection": "至少选择一行有提供商的数据。",
+    "noPreviewKeys": "这些文件中未找到密钥。",
+    "previewFiles": "预览",
+    "previewing": "预览中…",
+    "provider": "提供商",
+    "selected": "已选",
+    "skippedItems": "已跳过："
   },
   "status": {
     "healthy": "健康",
@@ -299,7 +356,10 @@
     "fusionJudgeSynth": "综合出最终答案",
     "errorPrefix": "错误:",
     "systemPromptLabel": "系统提示词",
-    "systemPromptPlaceholder": "可选。作为系统消息在你的对话之前发送。"
+    "systemPromptPlaceholder": "可选。作为系统消息在你的对话之前发送。",
+    "noModelsFound": "未找到模型",
+    "searchModels": "搜索模型…",
+    "selectModel": "选择模型"
   },
   "embeddings": {
     "title": "模型",
@@ -392,5 +452,31 @@
     "es": "Español",
     "pt-BR": "Português (Brasil)",
     "it": "Italiano"
+  },
+  "auxiliary": {
+    "newBadge": "新",
+    "noModels": "此任务链暂无模型。从下方列表添加模型。",
+    "activeModel": "当前模型",
+    "totalModels": "总数",
+    "enabled": "已启用"
+  },
+  "task": "任务",
+  "penaltyInspector": {
+    "cooldownChip": "{key} - {time}",
+    "errorsHeading": "最近 {count} 个错误",
+    "factor": "分数 x{factor}",
+    "noCooldown": "无冷却",
+    "noKey": "无密钥",
+    "noRecentErrors": "无最近错误",
+    "offChain": "链外",
+    "penaltyValue": "惩罚 {value}",
+    "reasons": {
+      "cooldown": "冷却中",
+      "penalty": "已惩罚",
+      "recent_errors": "失败中"
+    },
+    "rowCount": "{count} 活跃",
+    "subtitle": "最近 {minutes} 分钟的惩罚、冷却和失败",
+    "title": "路由器压力"
   }
 }

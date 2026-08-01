@@ -61,7 +61,8 @@
     "model": "Model",
     "provider": "Provider",
     "success": "Success",
-    "failures": "Failures"
+    "failures": "Failures",
+    "back": "Back"
   },
   "models": {
     "title": "Models",
@@ -469,5 +470,13 @@
     "es": "Español",
     "pt-BR": "Português (Brasil)",
     "it": "Italiano"
-  }
+  },
+  "auxiliary": {
+    "newBadge": "New",
+    "noModels": "No models in this task chain yet. Add models from the list below.",
+    "activeModel": "Active model",
+    "totalModels": "Total",
+    "enabled": "enabled"
+  },
+  "task": "Task"
 }

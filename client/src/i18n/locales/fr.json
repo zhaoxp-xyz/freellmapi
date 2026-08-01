@@ -61,7 +61,8 @@
     "model": "Modèle",
     "provider": "Fournisseur",
     "success": "Réussite",
-    "failures": "Échecs"
+    "failures": "Échecs",
+    "back": "Retour"
   },
   "models": {
     "title": "Modèles",
@@ -387,5 +388,13 @@
     "es": "Español",
     "pt-BR": "Português (Brasil)",
     "it": "Italiano"
-  }
+  },
+  "auxiliary": {
+    "newBadge": "Nouveau",
+    "noModels": "Aucun modèle dans cette chaîne de tâches. Ajoutez des modèles depuis la liste ci-dessous.",
+    "activeModel": "Modèle actif",
+    "totalModels": "Total",
+    "enabled": "activé"
+  },
+  "task": "Tâche"
 }

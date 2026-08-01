@@ -61,7 +61,8 @@
     "model": "Modelo",
     "provider": "Proveedor",
     "success": "Aciertos",
-    "failures": "Fallos"
+    "failures": "Fallos",
+    "back": "Atrás"
   },
   "models": {
     "title": "Modelos",
@@ -387,5 +388,13 @@
     "es": "Español",
     "pt-BR": "Português (Brasil)",
     "it": "Italiano"
-  }
+  },
+  "auxiliary": {
+    "newBadge": "Nuevo",
+    "noModels": "No hay modelos en esta cadena de tareas. Añade modelos desde la lista de abajo.",
+    "activeModel": "Modelo activo",
+    "totalModels": "Total",
+    "enabled": "habilitado"
+  },
+  "task": "Tarea"
 }

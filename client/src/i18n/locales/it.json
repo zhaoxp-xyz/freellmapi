@@ -61,7 +61,8 @@
     "model": "Modello",
     "provider": "Fornitore",
     "success": "Successo",
-    "failures": "Fallimenti"
+    "failures": "Fallimenti",
+    "back": "Indietro"
   },
   "models": {
     "title": "Modelli",
@@ -408,5 +409,13 @@
     "es": "Español",
     "pt-BR": "Português (Brasil)",
     "it": "Italiano"
-  }
+  },
+  "auxiliary": {
+    "newBadge": "Nuovo",
+    "noModels": "Nessun modello in questa catena di attività. Aggiungi modelli dall'elenco qui sotto.",
+    "activeModel": "Modello attivo",
+    "totalModels": "Totale",
+    "enabled": "abilitato"
+  },
+  "task": "Attività"
 }
