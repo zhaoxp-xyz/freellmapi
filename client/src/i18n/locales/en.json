@@ -15,7 +15,7 @@
     "switchToChinese": "Switch to Chinese",
     "switchToEnglish": "Switch to English",
     "modelsMenu": "Browse model types",
-    "auxiliary": "Auxiliary"
+    "auxiliary": "Model Groups"
   },
   "auth": {
     "createYourAccount": "Create your account",
@@ -773,7 +773,7 @@
     "passwordMin": "At least {min} characters"
   },
   "auxiliary": {
-    "title": "Auxiliary",
+    "title": "Model Groups",
     "description": "Manage auxiliary task chains — assign models to specific task types and control their priority and availability.",
     "inChain": "In Chain",
     "available": "Available",
@@ -809,10 +809,6 @@
         "label": "MCP",
         "description": "Models for MCP tool execution"
       },
-      "tirlegen": {
-        "label": "TIRLegen",
-        "description": "Models for TIR generation"
-      },
       "curator": {
         "label": "Curator",
         "description": "Models for curation tasks"
@@ -820,10 +816,6 @@
       "general": {
         "label": "General",
         "description": "General purpose auxiliary tasks"
-      },
-      "coding": {
-        "label": "Coder",
-        "description": "Models for code generation and code understanding tasks"
       },
       "embedding": {
         "label": "Embedding",
@@ -840,6 +832,10 @@
       "tts": {
         "label": "TTS",
         "description": "Models for text-to-speech synthesis"
+      },
+      "coder": {
+        "label": "Coder",
+        "description": "Models for code generation and code understanding tasks"
       }
     }
   }

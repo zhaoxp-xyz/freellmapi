@@ -2,7 +2,7 @@
 
 import { Router } from 'express';
 import { getDb } from '../db/index.js';
-const VALID_TASK_TYPES = ['vision', 'webextract', 'compression', 'skillhub', 'approval', 'mcp', 'tirlegen', 'curator', 'general', 'coding', 'embedding', 'imagegeneration', 'videogen', 'tts'];
+const VALID_TASK_TYPES = ['vision', 'webextract', 'compression', 'skillhub', 'approval', 'mcp', 'curator', 'general', 'coder', 'embedding', 'imagegeneration', 'videogen', 'tts'];
 
 const router = Router();
 

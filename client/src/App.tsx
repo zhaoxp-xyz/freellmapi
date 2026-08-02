@@ -60,7 +60,7 @@ const navItems = [
   { to: '/agents', labelKey: 'nav.agents' },
   { to: '/analytics', labelKey: 'nav.analytics' },
   { to: '/premium', labelKey: 'nav.premium' },
-  { to: '/auxiliary', labelKey: 'nav.auxiliary' },
+  { to: '/models/groups', labelKey: 'nav.auxiliary' },
 ]
 
 // The five modality pages behind "Models"; surfaced in the nav dropdown and
@@ -337,7 +337,8 @@ function App() {
                       <Route path="/fallback" element={<Navigate to="/models/chat" replace />} />
                       <Route path="/analytics" element={<AnalyticsPage />} />
                       <Route path="/premium" element={<PremiumPage />} />
-                      <Route path="/auxiliary" element={<AuxiliaryPage />} />
+                      <Route path="/models/groups" element={<AuxiliaryPage />} />
+                      <Route path="/auxiliary" element={<Navigate to="/models/groups" replace />} />
                       <Route path="/test" element={<Navigate to="/playground" replace />} />
                       <Route path="/health" element={<Navigate to="/keys" replace />} />
                       <Route path="*" element={<NotFoundPage />} />

@@ -70,13 +70,13 @@ interface AvailableRow {
 
 const VALID_TASK_TYPES = [
   'vision', 'webextract', 'compression', 'skillhub', 'approval', 'mcp',
-  'tirlegen', 'curator', 'general', 'coding', 'embedding',
+  'curator', 'general', 'coder', 'embedding',
   'imagegeneration', 'videogen', 'tts',
 ]
 
 const taskMeta: Record<string, { label: string; description: string; color: string; filterVision: boolean }> = {
   vision: { label: "Vision", description: "Models for multimodal image/video understanding tasks", color: "blue", filterVision: true },
-  coding: { label: "Coder", description: "Models for code generation and code understanding tasks", color: "purple", filterVision: false },
+  coder: { label: "Coder", description: "Models for code generation and code understanding tasks", color: "purple", filterVision: false },
   webextract: { label: "WebExtract", description: "Models for web content extraction and summarization", color: "emerald", filterVision: false },
   embedding: { label: "Embedding", description: "Models for text embedding / vector representation", color: "amber", filterVision: false },
   tts: { label: "TTS", description: "Models for text-to-speech synthesis", color: "rose", filterVision: false },
@@ -87,7 +87,6 @@ const taskMeta: Record<string, { label: string; description: string; color: stri
   skillhub: { label: "SkillHub", description: "Models for skill hub tasks", color: "violet", filterVision: false },
   approval: { label: "Approval", description: "Models for approval workflows", color: "indigo", filterVision: false },
   mcp: { label: "MCP", description: "Models for MCP tool execution", color: "teal", filterVision: false },
-  tirlegen: { label: "TIRLegen", description: "Models for TIR generation", color: "lime", filterVision: false },
   curator: { label: "Curator", description: "Models for curation tasks", color: "amber", filterVision: false },
 }
 
@@ -170,7 +169,7 @@ export default function AuxiliaryPage() {
   const [search, setSearch] = useState("")
 
   const pathMap: Record<string, string> = {
-    "/models/vision": "vision", "/models/groups": "vision", "/models/coder": "coding", "/models/webextract": "webextract",
+    "/models/vision": "vision", "/models/groups": "vision", "/models/coder": "coder", "/models/webextract": "webextract",
     "/models/tts": "tts", "/models/embedding": "embedding", "/models/imagegeneration": "imagegeneration",
     "/models/compression": "compression", "/models/general": "general", "/models/videogen": "videogen",
   }

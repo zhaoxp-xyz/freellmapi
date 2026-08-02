@@ -220,7 +220,7 @@
     "limitTpm": "TPM",
     "limitTpd": "TPD",
     "limitHint": "제한 없음으로 두려면 비워 두세요.",
-    "groupsTab": "Model Groups"
+    "groupsTab": "모델 그룹"
   },
   "strategies": {
     "title": "라우팅 전략",
@@ -772,7 +772,7 @@
     "documentation": "문서"
   },
   "auxiliary": {
-    "title": "Auxiliary",
+    "title": "모델 그룹",
     "description": "Manage auxiliary task chains — assign models to specific task types and control their priority and availability.",
     "inChain": "In Chain",
     "available": "Available",
@@ -808,10 +808,6 @@
         "label": "MCP",
         "description": "Models for MCP tool execution"
       },
-      "tirlegen": {
-        "label": "TIRLegen",
-        "description": "Models for TIR generation"
-      },
       "curator": {
         "label": "Curator",
         "description": "Models for curation tasks"
@@ -819,10 +815,6 @@
       "general": {
         "label": "General",
         "description": "General purpose auxiliary tasks"
-      },
-      "coding": {
-        "label": "Coder",
-        "description": "Models for code generation and code understanding tasks"
       },
       "embedding": {
         "label": "Embedding",
@@ -839,6 +831,10 @@
       "tts": {
         "label": "TTS",
         "description": "Models for text-to-speech synthesis"
+      },
+      "coder": {
+        "label": "Coder",
+        "description": "Models for code generation and code understanding tasks"
       }
     }
   }
