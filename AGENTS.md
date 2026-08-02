@@ -175,3 +175,134 @@ npm run test -w server
 - active: agnes, nara, bynara(同 nara 后端), opencode, groq, openrouter, mistral, nvidia, zhipu, github, modelscope(官方)
 - degraded: openmodel（全付费，待验证）
 - dropped: aiand（预付制坑，弃用走 groq）
+
+## 9. 数据库架构落盘（2026-08-02 用户确认，必须遵守）
+
+> **目标**：任何数据库改动以本节为准，改对了直接就能开发出正确的数据库。本节是**唯一权威**，与代码不一致时以本节为准。
+
+### 9.1 数据库位置与版本
+- **文件**：`server/data/freeapi.db`（SQLite，better-sqlite3）
+- **路径解析**：`server/src/db/index.ts` `DB_PATH = path.resolve(__dirname, '../../data/freeapi.db')`，可被 `FREEAPI_DB_PATH` 环境变量覆盖
+- **migrations 表**：`migrations(id, filename, applied_at)`——记录已应用迁移（当前 20 条）
+- **23 部署库当前状态**：auxiliary_config 表存在（2 条 migration 已应用），14 个 key 全 healthy
+
+### 9.2 我们新增的 auxiliary_config 表（核心）
+```sql
+CREATE TABLE auxiliary_config (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  task_type TEXT NOT NULL,        -- 'vision'/'coder'/'webextract'/... 13 个合法值（见 9.4）
+  model_db_id INTEGER NOT NULL,   -- 引用 models.id，ON DELETE CASCADE
+  priority INTEGER NOT NULL DEFAULT 0,   -- 链内顺序，越小越优先
+  enabled INTEGER NOT NULL DEFAULT 1,
+  UNIQUE (task_type, model_db_id),       -- 防重复（第二个 migration 加固）
+  FOREIGN KEY (model_db_id) REFERENCES models (id) ON DELETE CASCADE
+);
+CREATE INDEX idx_auxiliary_task_type ON auxiliary_config (task_type);
+```
+- **用途**：router.ts 的 `auto:<task_type>` / bare name 路由查此表拼模型链（getChainByTaskType）
+- **空表行为**：链为空 → 请求报错 "Task type 'X' has no enabled models"（功能就绪，非故障）
+- **维护**：模型被删时 CASCADE 自动清孤儿；迁移/改链在 dashboard 的 Model Groups 页面操作
+
+### 9.3 migration 注册机制（3 处，缺一不可，**先 build 再跑**）
+`db:migration:up` **只跑 `server/src/db/migrate/defaults.ts` 硬编码列表**，不扫目录。新 migration 必须注册 3 处：
+1. **import**：`import * as X from '../migrations/<file>.js'`（注意编译后是 .js）
+2. **FILENAME 常量**：`export const X_FILENAME = '<file>.ts'`
+3. **数组项**：`{ filename: X_FILENAME, module: X }` 加入 `MIGRATIONS` 数组
+
+**现有 auxiliary 2 个 migration**（都已注册）：
+| 文件 | 内容 |
+|---|---|
+| `20260731_120000_auxiliary_config.ts` | 建表 + task_type 索引 |
+| `20260801_080000_auxiliary_config_unique.ts` | 加固 UNIQUE(task_type, model_db_id)（SQLite 不能 ALTER ADD CONSTRAINT，重建表） |
+
+### 9.4 VALID_TASK_TYPES（13 个，2026-08-02 定稿）
+```ts
+['vision', 'webextract', 'compression', 'skillhub', 'approval', 'mcp',
+ 'curator', 'general', 'coder', 'embedding', 'imagegeneration', 'videogen', 'tts']
+```
+- **定义处**：`server/src/routes/auxiliary.ts`（API 返回）+ `client/src/pages/AuxiliaryPage.tsx`（前端 taskMeta）+ `server/src/services/router.ts`（路由校验，**注意 router.ts 的列表是 10 个精简版**，2026-08-02 未同步）
+- **已删除**：`tirlegen`（曾存在，2026-08-02 删除，见 §10）
+- **命名**：`coder` 非 `coding`（2026-07-22 前后端统一过，2026-08-02 再次确认）
+
+### 9.5 关键表（官方已有，勿动）
+`models`（模型目录）、`api_keys`（加密 key）、`fallback_config`（默认链）、`profile_models`（profile 链）、`settings`（proxy_url 等）、`requests`（**created_at 是 UTC 非 CST！**）、`sessions`（dashboard 会话，token_hash）、`users`（admin@freellmapi.dev）
+
+## 10. Model Groups（原 Auxiliary）落盘（2026-08-02 用户确认，必须遵守）
+
+> **目标**：后续开发前先读本节，避免理解偏差。本节记录该功能的前因后果与命名演变。
+
+### 10.1 一句话定义
+**Model Groups = 按任务类型（task_type）管理的模型链分组页**。每个 task type 是一个"组"，组内模型按 priority 排序构成路由链；router 收到 `auto:<task_type>` 或 bare name（如 `coder`）请求时按链路由。
+
+### 10.2 命名演变（前因后果）
+| 时间 | 名称 | 说明 |
+|---|---|---|
+| 2026-07-22 | coding→coder | 前后端 task type 统一为 coder（我们 fork 的早期工作） |
+| 2026-08-01 | "Auxiliary" | 我们 fork 的 AuxiliaryPage 移植进 v0.6.6，侧边栏叫 Auxiliary，路由 `/auxiliary` |
+| 2026-08-02 | "Model Groups" | 用户确认：**models/groups 原则等于 auxiliary，统一命名**。路由 `/models/groups`，60 语言本地化名称（en=Model Groups, zh-CN=模型组, ja=モデルグループ...） |
+
+**2026-08-02 用户原话**："models/groups，原则上等于auxiliary，我们统一名字，用auxiliary的60种语言名称吧"；"用models/groups，因为页面名字叫models groups比较贴切"。
+
+### 10.3 当前实现状态（2026-08-02 定稿）
+- **路由**：`/models/groups` → AuxiliaryPage；`/auxiliary` 301 重定向到 `/models/groups`
+- **导航**：侧边栏 nav item `{ to: '/models/groups', labelKey: 'nav.auxiliary' }`
+- **标签**：models-tabs.tsx "Model Groups"（`models.groupsTab`）+ 新 徽章
+- **任务切换**：`/models/groups?task=<task_type>`（vision 默认，无 query 时）
+- **i18n key**：`auxiliary.title` / `models.groupsTab` / `nav.auxiliary` 三者同值（60 语言本地化"Model Groups"）；`auxiliary.tasks.<type>.label/description` 13 个任务
+- **页面结构**：PageHeader（任务名+描述+badge）→ 任务标签条（13 个，可点切换）→ 搜索框 → Available 列表（可拖入链）→ In Chain 列表（可拖拽排序/移除）
+
+### 10.4 已删除的 tirlegen（为什么删）
+- **来源**：2026-07-01 commit `f720b40` "ui: add 5 missing task types" 加入，label "Tirlegen"，描述 "Models for tireless regeneration and retry logic"
+- **删除原因（2026-08-02 用户确认）**：Hermes config.yaml 里没有 tirlegen 任务（对应的是 title_generation→model=general）；tirlegen 是"TItle ReGeneration"的误缩写，无实际任务支撑；用户原话"删掉吧，我觉得意义不大了，我原本的目的就是区分模型的智商，因为有些工作用不到比较智能的模型"
+- **教训**：新增 task type 必须以 Hermes config.yaml 的 auxiliary 任务名或真实需求为依据，不造无源词汇
+
+### 10.5 Hermes config.yaml auxiliary 任务 ↔ task type 映射（2026-08-02 实测）
+Hermes config 的任务 key（snake_case）→ auxiliary task type（model 字段）：
+| Hermes config 任务 | task type |
+|---|---|
+| vision | vision |
+| web_extract | webextract |
+| compression | compression |
+| skills_hub | skillhub |
+| approval | approval |
+| mcp | mcp |
+| title_generation | **general** |
+| tts_audio_tags | tts |
+| triage_specifier | **embedding** |
+| kanban_decomposer | **coder** |
+| profile_describer | **videogen** |
+| curator | curator |
+| monitor | **general** |
+
+**注意**：Hermes config 任务 key 是 Hermes 内部名，auxiliary task type 是 freellmapi 路由名，两者通过 config 的 `model:` 字段映射。**Hermes config 无 imagegeneration**（ImageGen 只在 auxiliary 侧）。
+
+## 11. 开发路径依赖（2026-08-02 用户确认，必须遵守）
+
+> **目标**：任何开发/部署操作前先确认依赖链上的 IP 未被改动。**Hermes 脑子所在的机器是红线，不能动。**
+
+### 11.1 模型请求链路（当前生产拓扑）
+```
+Hermes (23) → headroom proxy (23:8787) → freellmapi (40:3001) → auto 路由 → 上游模型
+```
+- **Hermes**（23）：`~/.hermes/config.yaml` → `model.provider: headroom`，`model.default: auto`
+- **headroom**（23）：`systemd headroom.service`，监听 8787；**转发目标来自环境变量 `OPENAI_TARGET_API_URL`**（当前=`http://192.168.31.40:3001/v1`）
+- **freellmapi**（40）：**当前 Hermes 脑子 = 该隐 40 的 freellmapi（:3001）**——**新红线，严禁任何改动**（动了=没脑子）
+- **opencode**（23）：`~/.config/opencode/opencode.jsonc` → `baseURL: http://192.168.31.23:8787/v1`（走本机 headroom）
+
+### 11.2 红线与可改（2026-08-02 重大变更，取代旧红线）
+| 机器 | 目录 | 状态 |
+|---|---|---|
+| **31.40 该隐** | `~/freellmapi` | **🔴 新红线：Hermes 脑子，禁改禁重启**（headroom 的 OPENAI_TARGET_API_URL 指向它） |
+| **31.23 平行线** | `~/freellmapi` | ✅ **可改：部署目标**（曾被降智操作破坏，2026-08-02 已用合并版恢复并部署） |
+| **31.23 平行线** | `~/freellmapi-auxiliary` | ✅ 工作区（v0.6.6 合并版，分支 merge-upstream-v0.6.6） |
+
+### 11.3 部署 SOP（改 23 的 freellmapi）
+1. 在 `~/freellmapi-auxiliary` 改代码 → `npm run build` 通过
+2. 同步到部署目录：`cp -a server/dist/. ~/freellmapi/server/dist/` + `cp -a client/dist/. ~/freellmapi/client/dist/`（保留 `server/data/` 和 `.env` 不动）
+3. `systemctl --user restart freellmapi.service`（systemd user 服务，Restart=always）
+4. 验证：`curl http://192.168.31.23:3001/api/ping` + `/v1/models` + CDP 实测页面
+
+### 11.4 关键坑
+- **改 40 = 自杀**：headroom 转发目标指向 40:3001，40 服务重启/改动会直接断 Hermes 的脑子（当前会话立即失联）
+- **改 headroom 的 OPENAI_TARGET_API_URL = 换脑子**：要切换 Hermes 脑子（如切回 23）改这个环境变量 + 重启 headroom.service，但**必须先确认目标服务健康**再切，否则 Hermes 失联
+- **23 的 freellmapi 服务**：systemd user 服务（`systemctl --user status/restart freellmapi`），与 40 并存，可随时切换备用
