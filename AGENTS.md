@@ -80,6 +80,43 @@
   - ✅ **阶段 1+2 已推送远端**（6f99e83 → e9db2a2）
   - ⏳ 待办：阶段 3 router 重移植（官方新 router.ts fallback-loop/attempt-trace + 我们 auxiliary 链逻辑）
   - 📌 经验：opencode serve v1.18.9 API 是 `/api` 前缀版（`POST /api/session`、`POST /api/session/{id}/prompt`，body=`{"prompt":{"text":...},"delivery":"steer"}`）；旧 skill 里无前缀 + parts 数组格式已过时
+- **2026-08-02 阶段 3 完成 ✅（commit ac3c291，opencode 执行 + Hermes 独立验收）**：
+  - ✅ `feat(router): port auxiliary task-type routing (auto:<task_type> + bare name) into v0.6.6 router`
+  - ✅ resolveRoutingChain 新增 3 分支：bare name（vision/coder/...）→ getChainByTaskType；`auto:<task_type>`（在 profile 查询前插入）；VALID_TASK_TYPES 常量 + isValidTaskType()
+  - ✅ 与官方 attempt-trace/fallback-loop 架构兼容（ResolvedChain 形状一致），官方 global sort / profile 逻辑未动
+  - ⏳ 验证补充：起服实测 `model=auto:vision` / `model=coder` 需阶段 5 冒烟时完成（build + tsc 已过）
+- **2026-08-02 阶段 4 调研完成 ✅（I18N-AUDIT，文档 `~/hermes-project/freellmapi/I18N-AUDIT-v0.6.6.md`）**：
+  - ✅ **数据修正（原计划 vs 实测）**：
+    - ❌ "zh-CN i18n 439/439" → ✅ 官方 60 语言每文件仅 **21 个顶层命名空间 key**，60 文件完全对齐零差异；fork zh-CN 实为 16 key
+    - ❌ "TASK_TYPES 5 个" → ✅ 后端 VALID_TASK_TYPES 实为 **14 个**（vision/webextract/compression/skillhub/approval/mcp/tirlegen/curator/general/coding/embedding/imagegeneration/videogen/tts）
+    - ❌ "AuxiliaryPage 在 f23a553" → ✅ 实际在 **d17da9f**（feat: unify auxiliary chain management with multi-task support）
+  - ✅ **官方无 auxiliary 命名空间** → 阶段 4 需新增；AuxiliaryPage 硬编码英文串 18 条 + taskMeta 14 个 task type 的 label/description 需翻译
+  - ✅ **阶段 4 子任务清单**（每子任务独立 commit）：4.1 提取硬编码串→新增 auxiliary 命名空间（en.json）→ 4.2 翻译 60 语言（脚本校验 60 文件均有 auxiliary）→ 4.3 新建 AuxiliaryPage.tsx（参照 d17da9f 适配官方组件库）→ 4.4 taskMeta 对齐后端 14 个 VALID_TASK_TYPES → 4.5 App.tsx 加 /auxiliary 路由 + 导航入口 → 4.6 端到端验证（PORT=3002）
+  - ⏳ **待办**：用户确认后派 opencode 执行阶段 4（当前明确指示：**暂不开工**）
+
+## 4b. 阶段 3 任务单（router 重移植，最难点 ⚠️）
+
+**目标**：把我们的 auxiliary 路由逻辑（task-type 链）移植进官方 v0.6.6 新版 router.ts（1514 行，fallback-loop/attempt-trace 架构）。
+
+**已调研的差异（2026-08-01）**：
+- 官方 `resolveRoutingChain`（router.ts L825）：`auto:` 后缀只认 global sort（GLOBAL_SORT_ALIASES）+ profile（getChainByProfileName）；**无 task-type 支持、无 bare name**
+- 我们旧版（main 分支）：`getChainByTaskType(db, taskType)` 查 auxiliary_config JOIN models + `isValidTaskType()` bare name 分支 + `auto:<task_type>` 分支（在 profile 查询前插入）
+- 官方已含：GLOBAL_SORT_ALIASES、getChainByProfileName、getChainByGlobalSort、orderChain——这些不用动
+
+**opencode 任务（阶段 3）**：
+1. 通读官方新 `resolveRoutingChain`（L825-869）定位插入点
+2. 移植 `getChainByTaskType`（查 auxiliary_config，SQL 参考我们旧版，适配官方 ChainRow 类型）
+3. 移植 bare name 分支（`isValidTaskType(lower)` → getChainByTaskType）
+4. 在 profile 查询前插入 `auto:<task_type>` 分支（isValidTaskType(suffix)）
+5. 需要时从我们旧版移植 `isValidTaskType` 函数（查 VALID_TASK_TYPES 或 auxiliary_config 存在性）
+6. 适配官方 attempt-trace/fallback-loop 架构（task-type 链返回的 ResolvedChain 必须与官方形状一致）
+7. 不要动官方已有的 global sort / profile 逻辑
+
+**验证（阶段 3 完成标准）**：三种请求全 200：`model=auto` / `model=auto:vision` / `model=coder`（需要起服 + 数据库有 auxiliary_config 数据才完整验证；build + 单测为第一道关）
+- `npm run build -w server` + `npm run test -w server`
+- 起临时服（PORT=3002）验证 resolveRoutingChain 行为（若 DB 无 auxiliary_config 数据，可手工插入测试行或用单测覆盖）
+
+**commit**：1 个独立 commit：`feat(router): port auxiliary task-type routing (auto:<task_type> + bare name) into v0.6.6 router`
 
 ## 5. 已实测修正事实（与官方 AGENTS.md/代码不一致，以本表为准）
 
