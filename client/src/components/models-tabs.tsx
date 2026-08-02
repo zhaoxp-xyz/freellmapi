@@ -19,6 +19,17 @@ export function ModelsTabs() {
       <NavLink to="/models/image" className={({ isActive }) => tab(isActive)}>{t('models.imageTab')}</NavLink>
       <NavLink to="/models/audio" className={({ isActive }) => tab(isActive)}>{t('models.audioTab')}</NavLink>
       <NavLink to="/models/fusion" className={({ isActive }) => tab(isActive)}>{t('models.fusionTab')}</NavLink>
+      <NavLink to="/models/groups" className={({ isActive }) => tab(isActive)}>
+        {({ isActive }) => (
+          <>
+            {t('models.groupsTab')}
+            <span className={"rounded px-1 py-0.5 text-[9px] font-semibold uppercase leading-none tracking-wide " +
+              (isActive ? 'bg-background/20 text-background' : 'bg-blue-500/15 text-blue-600 dark:text-blue-400')} >
+              {t('models.newBadge')}
+            </span>
+          </>
+        )}
+      </NavLink>
     </div>
   )
 }

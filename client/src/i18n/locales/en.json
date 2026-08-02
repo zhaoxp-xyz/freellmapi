@@ -14,7 +14,8 @@
     "switchDark": "Switch to dark theme",
     "switchToChinese": "Switch to Chinese",
     "switchToEnglish": "Switch to English",
-    "modelsMenu": "Browse model types"
+    "modelsMenu": "Browse model types",
+    "auxiliary": "Auxiliary"
   },
   "auth": {
     "createYourAccount": "Create your account",
@@ -219,7 +220,8 @@
     "limitRpd": "RPD",
     "limitTpm": "TPM",
     "limitTpd": "TPD",
-    "limitHint": "Leave blank for no limit."
+    "limitHint": "Leave blank for no limit.",
+    "groupsTab": "Model Groups"
   },
   "strategies": {
     "title": "Routing strategy",
@@ -769,5 +771,76 @@
     "url": "Enter a valid URL starting with http:// or https://",
     "email": "Enter a valid email address",
     "passwordMin": "At least {min} characters"
+  },
+  "auxiliary": {
+    "title": "Auxiliary",
+    "description": "Manage auxiliary task chains — assign models to specific task types and control their priority and availability.",
+    "inChain": "In Chain",
+    "available": "Available",
+    "newBadge": "New",
+    "noModels": "No models configured for this task type yet. Add models from the Available list.",
+    "activeModel": "Active models",
+    "totalModels": "Total in chain",
+    "enabled": "Enabled",
+    "searchPlaceholder": "Search models...",
+    "clearSearch": "Clear search",
+    "tasks": {
+      "vision": {
+        "label": "Vision",
+        "description": "Models for multimodal image/video understanding tasks"
+      },
+      "webextract": {
+        "label": "WebExtract",
+        "description": "Models for web content extraction and summarization"
+      },
+      "compression": {
+        "label": "Compression",
+        "description": "Models for context compression"
+      },
+      "skillhub": {
+        "label": "SkillHub",
+        "description": "Models for skill hub tasks"
+      },
+      "approval": {
+        "label": "Approval",
+        "description": "Models for approval workflows"
+      },
+      "mcp": {
+        "label": "MCP",
+        "description": "Models for MCP tool execution"
+      },
+      "tirlegen": {
+        "label": "TIRLegen",
+        "description": "Models for TIR generation"
+      },
+      "curator": {
+        "label": "Curator",
+        "description": "Models for curation tasks"
+      },
+      "general": {
+        "label": "General",
+        "description": "General purpose auxiliary tasks"
+      },
+      "coding": {
+        "label": "Coder",
+        "description": "Models for code generation and code understanding tasks"
+      },
+      "embedding": {
+        "label": "Embedding",
+        "description": "Models for text embedding / vector representation"
+      },
+      "imagegeneration": {
+        "label": "ImageGen",
+        "description": "Models for image generation"
+      },
+      "videogen": {
+        "label": "VideoGen",
+        "description": "Models for video generation"
+      },
+      "tts": {
+        "label": "TTS",
+        "description": "Models for text-to-speech synthesis"
+      }
+    }
   }
 }

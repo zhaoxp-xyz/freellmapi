@@ -39,6 +39,7 @@ import AnalyticsPage from '@/pages/AnalyticsPage'
 import PremiumPage from '@/pages/PremiumPage'
 import NotFoundPage from '@/pages/NotFoundPage'
 import AgentsPage from '@/pages/AgentsPage'
+import AuxiliaryPage from '@/pages/AuxiliaryPage'
 
 // Every failed mutation surfaces as an error toast, so no action fails
 // silently. A page that already shows the failure inline can opt out with
@@ -59,6 +60,7 @@ const navItems = [
   { to: '/agents', labelKey: 'nav.agents' },
   { to: '/analytics', labelKey: 'nav.analytics' },
   { to: '/premium', labelKey: 'nav.premium' },
+  { to: '/auxiliary', labelKey: 'nav.auxiliary' },
 ]
 
 // The five modality pages behind "Models"; surfaced in the nav dropdown and
@@ -335,6 +337,7 @@ function App() {
                       <Route path="/fallback" element={<Navigate to="/models/chat" replace />} />
                       <Route path="/analytics" element={<AnalyticsPage />} />
                       <Route path="/premium" element={<PremiumPage />} />
+                      <Route path="/auxiliary" element={<AuxiliaryPage />} />
                       <Route path="/test" element={<Navigate to="/playground" replace />} />
                       <Route path="/health" element={<Navigate to="/keys" replace />} />
                       <Route path="*" element={<NotFoundPage />} />
