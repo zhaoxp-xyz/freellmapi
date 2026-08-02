@@ -67,7 +67,8 @@
     "success": "کامیابی",
     "failures": "ناکامیاں",
     "dismiss": "برطرف کرنا",
-    "status": "حیثیت"
+    "status": "حیثیت",
+    "back": "واپس"
   },
   "settings": {
     "title": "ترتیبات",

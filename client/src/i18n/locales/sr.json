@@ -67,7 +67,8 @@
     "success": "Успех",
     "failures": "Неуспеси",
     "dismiss": "Одбаци",
-    "status": "Статус"
+    "status": "Статус",
+    "back": "Назад"
   },
   "settings": {
     "title": "Подешавања",

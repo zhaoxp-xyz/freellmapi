@@ -68,7 +68,8 @@
     "success": "Success",
     "failures": "Failures",
     "dismiss": "Dismiss",
-    "status": "Status"
+    "status": "Status",
+    "back": "Back"
   },
   "settings": {
     "title": "Settings",

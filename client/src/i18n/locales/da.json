@@ -67,7 +67,8 @@
     "success": "Succes",
     "failures": "Fejl",
     "dismiss": "Afvist",
-    "status": "Status"
+    "status": "Status",
+    "back": "Tilbage"
   },
   "settings": {
     "title": "Indstillinger",

@@ -67,7 +67,8 @@
     "success": "Muvaffaqiyat",
     "failures": "Muvaffaqiyatsizliklar",
     "dismiss": "Rad etish",
-    "status": "Status"
+    "status": "Status",
+    "back": "Orqaga"
   },
   "settings": {
     "title": "Sozlamalar",

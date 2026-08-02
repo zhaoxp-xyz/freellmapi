@@ -67,7 +67,8 @@
     "success": "thành công",
     "failures": "Thất bại",
     "dismiss": "Loại bỏ",
-    "status": "Trạng thái"
+    "status": "Trạng thái",
+    "back": "Quay lại"
   },
   "settings": {
     "title": "Cài đặt",

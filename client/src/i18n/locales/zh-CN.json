@@ -67,7 +67,8 @@
     "success": "成功",
     "failures": "失败",
     "dismiss": "关闭",
-    "status": "状态"
+    "status": "状态",
+    "back": "返回"
   },
   "settings": {
     "title": "设置",

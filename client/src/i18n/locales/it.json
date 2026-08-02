@@ -67,7 +67,8 @@
     "success": "Successo",
     "failures": "Fallimenti",
     "dismiss": "Chiudi",
-    "status": "Stato"
+    "status": "Stato",
+    "back": "Indietro"
   },
   "settings": {
     "title": "Impostazioni",

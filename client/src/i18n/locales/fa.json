@@ -67,7 +67,8 @@
     "success": "موفقیت",
     "failures": "شکست ها",
     "dismiss": "رد کردن",
-    "status": "وضعیت"
+    "status": "وضعیت",
+    "back": "بازگشت"
   },
   "settings": {
     "title": "تنظیمات",

@@ -67,7 +67,8 @@
     "success": "Uğur",
     "failures": "Uğursuzluqlar",
     "dismiss": "Rədd et",
-    "status": "Status"
+    "status": "Status",
+    "back": "Geri"
   },
   "settings": {
     "title": "Parametrlər",

@@ -67,7 +67,8 @@
     "success": "Uspjeh",
     "failures": "Neuspjesi",
     "dismiss": "Raspustiti",
-    "status": "Status"
+    "status": "Status",
+    "back": "Natrag"
   },
   "settings": {
     "title": "Postavke",

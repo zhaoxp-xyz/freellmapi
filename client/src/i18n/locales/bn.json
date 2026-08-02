@@ -67,7 +67,8 @@
     "success": "সফলতা",
     "failures": "ব্যর্থতা",
     "dismiss": "খারিজ",
-    "status": "স্ট্যাটাস"
+    "status": "স্ট্যাটাস",
+    "back": "ফিরে যান"
   },
   "settings": {
     "title": "সেটিংস",

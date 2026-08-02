@@ -67,7 +67,8 @@
     "success": "Úspěch",
     "failures": "Neúspěchy",
     "dismiss": "Rozchod",
-    "status": "Stav"
+    "status": "Stav",
+    "back": "Zpět"
   },
   "settings": {
     "title": "Nastavení",

@@ -67,7 +67,8 @@
     "success": "Mafanikio",
     "failures": "Kushindwa",
     "dismiss": "Ondoa",
-    "status": "Hali"
+    "status": "Hali",
+    "back": "Rudi"
   },
   "settings": {
     "title": "Mipangilio",

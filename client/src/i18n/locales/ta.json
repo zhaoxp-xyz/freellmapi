@@ -67,7 +67,8 @@
     "success": "வெற்றி",
     "failures": "தோல்விகள்",
     "dismiss": "நிராகரி",
-    "status": "நிலை"
+    "status": "நிலை",
+    "back": "பின்செல்"
   },
   "settings": {
     "title": "அமைப்புகள்",

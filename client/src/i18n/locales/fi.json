@@ -67,7 +67,8 @@
     "success": "Menestys",
     "failures": "Epäonnistumiset",
     "dismiss": "Hylkäys",
-    "status": "Tila"
+    "status": "Tila",
+    "back": "Takaisin"
   },
   "settings": {
     "title": "Asetukset",
