@@ -17,7 +17,7 @@ import {
   BANDIT_PRESETS, DEFAULT_STRATEGY, type RoutingStrategy, type RoutingWeights,
   reliabilityPosterior, expectedReliability, sampleBeta,
   speedScore, intelligenceScore, intelligenceComposite, headroomFactor, rateLimitFactor, combineScore,
-  observedSpeedRank, TIMEOUT_LATENCY_CAP_MS,
+  observedSpeedRank, TIMEOUT_LATENCY_CAP_MS, tierValue,
 } from './scoring.js';
 import { TIMEOUT_ERROR_MARKERS } from '../lib/error-classify.js';
 import { modelsWithOverriddenField } from './model-state.js';
@@ -753,7 +753,21 @@ const GLOBAL_SORT_ALIASES: Record<string, string> = {
   balanced: 'balanced',
 };
 
+const VALID_TIERS = ['Frontier', 'Large', 'Medium', 'Small'] as const;
+
+function getAutoMinTier(db: Db): string {
+  const raw = getSetting('auto_min_tier');
+  if (raw && VALID_TIERS.includes(raw as any)) return raw;
+  return 'Large';
+}
+
+function filterByMinTier(chain: ChainRow[], minTier: string): ChainRow[] {
+  const min = tierValue(minTier);
+  return chain.filter(e => tierValue(e.size_label) >= min);
+}
+
 function getActiveChain(db: Db): ChainRow[] {
+  const minTier = getAutoMinTier(db);
   const profileId = getActiveProfileId(db);
   if (profileId != null) {
     const chain = db.prepare(`
@@ -768,10 +782,10 @@ function getActiveChain(db: Db): ChainRow[] {
       ORDER BY pm.priority ASC
     `).all(profileId) as ChainRow[];
     
-    if (chain.length > 0) return chain;
+    if (chain.length > 0) return filterByMinTier(chain, minTier);
   }
 
-  return db.prepare(`
+  const chain = db.prepare(`
     SELECT fc.model_db_id, fc.priority, fc.enabled,
            m.platform, m.model_id, m.display_name, m.intelligence_rank,
            m.size_label, m.monthly_token_budget,
@@ -781,6 +795,7 @@ function getActiveChain(db: Db): ChainRow[] {
     JOIN models m ON m.id = fc.model_db_id AND m.enabled = 1
     ORDER BY fc.priority ASC
   `).all() as ChainRow[];
+  return filterByMinTier(chain, minTier);
 }
 
 function getChainByProfileName(db: Db, name: string): ChainRow[] | null {
@@ -824,6 +839,7 @@ function getChainByGlobalSort(db: Db, globalAxis: string): ChainRow[] {
   // operator switched off — in the catalog or just for auto routing — stays off
   // here too (#634). Models with no chain row yet (fresh catalog rows) default
   // to in, so the sort still spans the whole catalog.
+  const minTier = getAutoMinTier(db);
   const profileId = getActiveProfileId(db);
   const chainEnabled = profileId != null
     ? 'COALESCE(pm.enabled, fc.enabled, 1) = 1'
@@ -849,14 +865,21 @@ function getChainByGlobalSort(db: Db, globalAxis: string): ChainRow[] {
   };
   const strat = strategyMap[globalAxis] || 'balanced';
   
-  return orderChain(allEnabled, strat);
+  return filterByMinTier(orderChain(allEnabled, strat), minTier);
 }
 
 export function resolveRoutingChain(modelString: string | undefined): ResolvedChain {
   const db = getDb();
 
   if (!modelString || modelString.toLowerCase() === 'auto') {
-    return { chain: getActiveChain(db), strategyKey: 'auto' };
+    const chain = getActiveChain(db);
+    if (chain.length === 0) {
+      const minTier = getAutoMinTier(db);
+      const err = new Error(`No models above auto_min_tier=${minTier}`) as any;
+      err.status = 400;
+      throw err;
+    }
+    return { chain, strategyKey: 'auto' };
   }
 
   const lower = modelString.toLowerCase();
