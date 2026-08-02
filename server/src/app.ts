@@ -3,6 +3,8 @@ import compression from 'compression';
 import cors from 'cors';
 import helmet from 'helmet';
 import path from 'path';
+import fs from 'fs';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { keysRouter } from './routes/keys.js';
 import { modelsRouter } from './routes/models.js';
@@ -59,6 +61,39 @@ function isImmutableAsset(filePath: string): boolean {
   );
 }
 
+// ── CSP inline-script hashes ──────────────────────────────────────────────
+// client/index.html ships one inline <script> (theme init, must run before
+// first paint so the dark-mode class is set before React hydrates). Vite does
+// NOT hash inline scripts into the build, so a strict `script-src 'self'`
+// would block it. Instead of hardcoding a sha256 that rots on the next build,
+// we read the built index.html at startup, hash every inline <script> body,
+// and return them as `'sha256-…'` CSP sources. Memoized: the bundle is
+// immutable per deploy (index.html is served no-cache but its contents don't
+// change while the process runs).
+let cspScriptHashesCache: string[] | null = null;
+function cspInlineScriptHashes(): string[] {
+  if (cspScriptHashesCache) return cspScriptHashesCache;
+  const results: string[] = [];
+  try {
+    const clientDist = path.resolve(__dirname, '../../client/dist');
+    const html = fs.readFileSync(path.join(clientDist, 'index.html'), 'utf8');
+    const inlineScriptRe = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi;
+    let match: RegExpExecArray | null;
+    while ((match = inlineScriptRe.exec(html)) !== null) {
+      const body = match[1] ?? '';
+      if (!body.trim()) continue;
+      const hash = crypto.createHash('sha256').update(body).digest('base64');
+      results.push(`'sha256-${hash}'`);
+    }
+  } catch (err) {
+    // If the built dashboard isn't present (e.g. server-only tests), there are
+    // no inline scripts to whitelist — fall back to plain 'self'.
+    console.warn('[csp] Could not read client/dist/index.html for inline-script hashes:', (err as Error).message);
+  }
+  cspScriptHashesCache = results;
+  return results;
+}
+
 export function createApp(config?: Config) {
   const cfg = config ?? loadConfig();
   const app = express();
@@ -71,17 +106,33 @@ export function createApp(config?: Config) {
   // are hashed by the Vite/React build, so 'self' works in production. Inline
   // styles from React hydration need 'unsafe-inline'. HSTS stays off because
   // this is a single-user local proxy served over HTTP (see README).
+  //
+  // System-level notes (2026-08-02):
+  // - useDefaults:false — helmet's default directives include
+  //   `upgrade-insecure-requests`, which is WRONG for this HTTP-only local
+  //   proxy: any client reaching it via a LAN IP (192.168.x.x) would have
+  //   every asset request upgraded to https:// and fail with
+  //   ERR_SSL_PROTOCOL_ERROR, rendering a blank dashboard. We list the full
+  //   directive set explicitly instead of inheriting defaults.
+  // - script-src hashes — client/index.html ships one inline <script> (theme
+  //   init, must run before first paint). Vite does NOT hash inline scripts;
+  //   we compute the sha256 of the built index.html inline scripts at startup
+  //   and add them to script-src, so the strict 'self' policy keeps working
+  //   across builds without hardcoding a hash that rots.
   app.use(helmet({
     contentSecurityPolicy: {
+      useDefaults: false,
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
+        scriptSrc: ["'self'", ...cspInlineScriptHashes()],
         styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", "data:"],
         connectSrc: ["'self'"],
         fontSrc: ["'self'"],
         formAction: ["'self'"],
         baseUri: ["'self'"],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'self'"],
       },
     },
     hsts: false,

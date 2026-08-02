@@ -48,4 +48,23 @@ describe('CSP security headers', () => {
     const headers = await getHeaders(app, '/api/ping');
     expect(headers.get('strict-transport-security')).toBeNull();
   });
+
+  it('does NOT emit upgrade-insecure-requests (HTTP-only LAN proxy)', async () => {
+    // helmet's default directives include upgrade-insecure-requests, which
+    // forces every asset request to https:// and breaks the dashboard when
+    // reached via a LAN IP (192.168.x.x → ERR_SSL_PROTOCOL_ERROR → blank
+    // page). The app must opt out via useDefaults:false.
+    const headers = await getHeaders(app, '/api/ping');
+    const csp = headers.get('content-security-policy')!;
+    expect(csp).not.toContain('upgrade-insecure-requests');
+  });
+
+  it('whitelists the inline theme script via sha256 hash', async () => {
+    // client/index.html ships an inline <script> (theme init before first
+    // paint). With script-src 'self' that script is blocked unless its hash is
+    // present. The app computes hashes from the built index.html at startup.
+    const headers = await getHeaders(app, '/api/ping');
+    const csp = headers.get('content-security-policy')!;
+    expect(csp).toMatch(/script-src 'self'(?: 'sha256-[A-Za-z0-9+/=]+')+/);
+  });
 });
