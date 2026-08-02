@@ -109,6 +109,11 @@
   - 0-5 阶段全部完成，23 部署上线，40 保持 Hermes 脑子红线
   - 经验沉淀：skill freellmapi-devops v2.0（部署 SOP/CSP 修复/命名规范）、skill llm-routing-debug v2.0（降智排查：输入时间点→输出模型，已同步 40 + Honcho + MemPalace）
   - 遗留（非阻塞）：router.ts VALID_TASK_TYPES 10 个待对齐 13；auxiliary_config 空表待用户在 Model Groups 页面配置；40 未部署新版（脑子红线，需用户决策）；freellmapi.bak.20260802/freellmapi.old 待清理
+- **2026-08-02 新任务：auto_min_tier 智商下限护栏（§12 任务单已落盘）**：
+  - 触发：用户事故（north-mini-code-free 当脑子，输出崩塌被迫用收费模型）
+  - 根因：裸 `model=auto` 走 fallback_config 全池（Small+Medium 占 58%），bandit 可抽中低智模型；Model Groups 管不住裸 auto
+  - 方案 B 获批：settings `auto_min_tier`（默认 Large）过滤 getActiveChain + getChainByGlobalSort，不碰 task_type 链
+  - 状态：任务单已写入 §12，待派 opencode 执行（2 个 commit），部署 40 需用户单独授权
 
 ## 4b. 阶段 3 任务单（router 重移植，最难点 ⚠️）
 
@@ -322,3 +327,26 @@ Hermes (23) → headroom proxy (23:8787) → freellmapi (40:3001) → auto 路�
 - **改 40 = 自杀**：headroom 转发目标指向 40:3001，40 服务重启/改动会直接断 Hermes 的脑子（当前会话立即失联）
 - **改 headroom 的 OPENAI_TARGET_API_URL = 换脑子**：要切换 Hermes 脑子（如切回 23）改这个环境变量 + 重启 headroom.service，但**必须先确认目标服务健康**再切，否则 Hermes 失联
 - **23 的 freellmapi 服务**：systemd user 服务（`systemctl --user status/restart freellmapi`），与 40 并存，可随时切换备用
+
+## 12. auto_min_tier 智商下限护栏任务单（2026-08-02 新增，非锚定计划阶段）
+
+### 12.1 背景（用户事故触发）
+- **事故**：auto 路由把 north-mini-code-free（Medium）等低智模型选为 Hermes 脑子，输出质量崩塌，用户被迫改用收费模型
+- **根因链**：`model=auto` → `getActiveChain()` → fallback_config 全池（40 上 112 个模型，Small+Medium 占 58%）；bandit 概率采样可抽中任何模型；Model Groups（auxiliary_config）只对显式 `auto:<task_type>` 生效，**管不住裸 auto**
+- **用户否决的方案**：A（disable 低智模型）= 打地鼠，catalog-sync 持续加新模型防不住；C（任务分流）= 高智模型额度耗尽 fallback 滑回全池仍会用低智。**B（智商下限护栏）= 正解**
+
+### 12.2 方案（B）
+- settings key **`auto_min_tier`**（默认 `Large`，合法值 Frontier/Large/Medium/Small）
+- 过滤**两处"无脑 auto"**：`getActiveChain()`（裸 auto / 裸模型名）+ `getChainByGlobalSort()`（auto:smart/fast/cheap/reliable）
+- **不碰** `getChainByTaskType()`（Model Groups 显式配置，尊重用户）
+- 规则：`tierValue(size_label) >= tierValue(minTier)`；未知 size_label（tierValue=0）自动出池；过滤后链空 → 明确报错（**宁可失败不降智**）
+- 收益：catalog-sync 新模型自动免疫；fallback-loop 只在高智模型间滑；低智模型只走显式 task_type 链（算力利益最大化）
+
+### 12.3 任务单（opencode，2 个 commit）
+1. **核心实现 + 单测**：router.ts（getAutoMinTier + 两处过滤）+ 新增 `router-tier-floor.test.ts`（默认 Large 过滤 Medium/Small / Frontier 只留 Frontier / Small 全保留 / 链空报错 / task_type 链不受影响）。验收：`npm run build -w server` + `npm run test -w server` 全绿含回归
+2. **settings API + dashboard 下拉**：settings 路由 GET/PUT `auto_min_tier`（非法值 400）+ SettingsPage 下拉（Frontier/Large/Medium/Small）+ i18n。验收：server+client build 全过
+
+### 12.4 部署路径与红线
+- 23 工作区改 → build → **部署 23**（cp dist + systemctl --user restart freellmapi）→ 起服实测（auto/auto:fast 过滤生效、task_type 不受限）
+- **40 = Hermes 脑子红线，部署 40 需用户单独授权**（备份目录+DB+encryption-key，10 分钟回退预案）
+- 红线目录 `~/freellmapi` 禁读写；§3 冻结版计划禁改
