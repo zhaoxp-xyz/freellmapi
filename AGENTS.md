@@ -93,6 +93,22 @@
   - ✅ **官方无 auxiliary 命名空间** → 阶段 4 需新增；AuxiliaryPage 硬编码英文串 18 条 + taskMeta 14 个 task type 的 label/description 需翻译
   - ✅ **阶段 4 子任务清单**（每子任务独立 commit）：4.1 提取硬编码串→新增 auxiliary 命名空间（en.json）→ 4.2 翻译 60 语言（脚本校验 60 文件均有 auxiliary）→ 4.3 新建 AuxiliaryPage.tsx（参照 d17da9f 适配官方组件库）→ 4.4 taskMeta 对齐后端 14 个 VALID_TASK_TYPES → 4.5 App.tsx 加 /auxiliary 路由 + 导航入口 → 4.6 端到端验证（PORT=3002）
   - ⏳ **待办**：用户确认后派 opencode 执行阶段 4（当前明确指示：**暂不开工**）
+- **2026-08-02 阶段 4 完成 ✅（commit 51440f7，opencode 执行 + Hermes 独立验收）**：
+  - ✅ **4.1+4.2**：`auxiliary` 命名空间新增到全部 60 locale（en 基准 + 59 翻译，21 key 基线全对齐）
+  - ✅ **4.3**：`client/src/pages/AuxiliaryPage.tsx` 新建（383 行，适配官方组件库 PageHeader/badge/models-tabs）
+  - ✅ **4.4**：taskMeta 对齐后端 14 个 VALID_TASK_TYPES
+  - ✅ **4.5**：App.tsx 加 `/auxiliary` 路由 + 导航入口（L63 + L340）
+  - ✅ **4.6**：client build 2.20s 通过；t() 18 次无硬编码残留
+- **2026-08-02 阶段 5 部署完成 ✅（23 上线，系统级修复 2 个 commit）**：
+  - ✅ **CSP 空白页根治（88781d9）**：helmets `upgrade-insecure-requests`（LAN IP 访问把 JS 升级到 https → ERR_SSL_PROTOCOL_ERROR → 空白页）+ 内联 theme 脚本被 `script-src 'self'` 拦截（官方注释声称 hashed 但从未实现）。修复：`useDefaults:false` + 启动时动态算 index.html 内联脚本 sha256 注入 CSP（不硬编码不腐化）+ 2 个新测试
+  - ✅ **Model Groups 命名统一（e33c8bf）**：路由 `/models/groups`（/auxiliary 重定向）；60 语言本地化"Model Groups"（zh=模型组）；VALID_TASK_TYPES 14→13（删 tirlegen）；coding→coder 前后端统一
+  - ✅ **i18n 补 key（60638e7）**：common.back 60 语言补齐
+  - ✅ **落盘（ef8ca1a）**：§9 数据库架构 / §10 Model Groups 前因后果 / §11 开发路径依赖（40=新红线）
+  - ✅ 部署验证：/v1/models 81 模型、keys 14 healthy、auto 路由 deepseek-v4-flash-free、CDP 实测 192.168.31.23:3001 完整渲染（bodyLen 1140→199KB）
+- **2026-08-02 项目收官 ✅（用户评价"效果非常好"）**：
+  - 0-5 阶段全部完成，23 部署上线，40 保持 Hermes 脑子红线
+  - 经验沉淀：skill freellmapi-devops v2.0（部署 SOP/CSP 修复/命名规范）、skill llm-routing-debug v2.0（降智排查：输入时间点→输出模型，已同步 40 + Honcho + MemPalace）
+  - 遗留（非阻塞）：router.ts VALID_TASK_TYPES 10 个待对齐 13；auxiliary_config 空表待用户在 Model Groups 页面配置；40 未部署新版（脑子红线，需用户决策）；freellmapi.bak.20260802/freellmapi.old 待清理
 
 ## 4b. 阶段 3 任务单（router 重移植，最难点 ⚠️）
 
