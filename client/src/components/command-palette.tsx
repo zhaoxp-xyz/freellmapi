@@ -6,6 +6,7 @@ import {
   Bot,
   Boxes,
   ChartColumn,
+  Clapperboard,
   Copy,
   Image as ImageIcon,
   KeyRound,
@@ -18,6 +19,7 @@ import {
   Zap,
 } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
+import { copyText } from '@/lib/clipboard'
 import { toast } from '@/lib/toast'
 import { apiBaseUrl } from '@/components/api-usage'
 import { COMMAND_PALETTE_EVENT } from '@/components/command-palette-state'
@@ -32,6 +34,14 @@ interface Command {
   keywords: string
   icon: React.ComponentType<{ className?: string }>
   run: () => void
+}
+
+// Copy and report what actually happened: on an insecure origin (a plain-HTTP
+// LAN install) the copy can fail, and a success toast over an empty clipboard
+// is worse than no toast at all (#734).
+async function copyAndToast(value: string, success: string, failure: string) {
+  if (await copyText(value)) toast.success(success)
+  else toast.error(failure)
 }
 
 // Cmd+K / Ctrl+K palette: jump to any page or model, toggle theme, copy the
@@ -99,6 +109,7 @@ export function CommandPalette() {
       { id: 'p-chat', group: 'pages', label: t('models.chatModelsTab'), keywords: 'models chat routing fallback', icon: MessageSquare, run: go('/models/chat') },
       { id: 'p-embeddings', group: 'pages', label: t('models.embeddingsTab'), keywords: 'models embeddings vectors', icon: Layers, run: go('/models/embeddings') },
       { id: 'p-image', group: 'pages', label: t('models.imageTab'), keywords: 'models image generation', icon: ImageIcon, run: go('/models/image') },
+      { id: 'p-video', group: 'pages', label: t('models.videoTab'), keywords: 'models video text to video generation mp4', icon: Clapperboard, run: go('/models/video') },
       { id: 'p-audio', group: 'pages', label: t('models.audioTab'), keywords: 'models audio speech tts stt transcription whisper', icon: AudioLines, run: go('/models/audio') },
       { id: 'p-fusion', group: 'pages', label: t('models.fusionTab'), keywords: 'models fusion synthesis panel judge', icon: Zap, run: go('/models/fusion') },
       { id: 'p-playground', group: 'pages', label: t('nav.playground'), keywords: 'playground test chat try', icon: SquareTerminal, run: go('/playground') },
@@ -126,8 +137,7 @@ export function CommandPalette() {
         icon: Copy,
         run: () => {
           if (!keyData?.apiKey) return
-          void navigator.clipboard?.writeText(keyData.apiKey)
-          toast.success(t('setup.copiedKey'))
+          void copyAndToast(keyData.apiKey, t('setup.copiedKey'), t('common.copyFailed'))
         },
       },
       {
@@ -137,8 +147,7 @@ export function CommandPalette() {
         keywords: 'copy base url endpoint',
         icon: Copy,
         run: () => {
-          void navigator.clipboard?.writeText(apiBaseUrl())
-          toast.success(t('setup.copiedUrl'))
+          void copyAndToast(apiBaseUrl(), t('setup.copiedUrl'), t('common.copyFailed'))
         },
       },
     ]

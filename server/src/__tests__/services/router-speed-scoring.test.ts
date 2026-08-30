@@ -6,6 +6,7 @@ import {
 import { observedSpeedRank, TIMEOUT_LATENCY_CAP_MS } from '../../services/scoring.js';
 import { upsertModelOverrides } from '../../services/model-state.js';
 import { getDb, initDb } from '../../db/index.js';
+import { addToActiveChain } from '../helpers/chain.js';
 
 vi.mock('../../lib/crypto.js', async () => {
   const actual = await vi.importActual('../../lib/crypto.js');
@@ -27,6 +28,7 @@ function addModel(opts: {
     .get(opts.platform, opts.modelId) as { id: number }).id;
   db.prepare('INSERT INTO fallback_config (model_db_id, priority, enabled) VALUES (?, ?, 1)')
     .run(id, opts.priority ?? 1);
+  addToActiveChain(id, opts.priority ?? 1);
   db.prepare(`
     INSERT INTO api_keys (platform, label, encrypted_key, iv, auth_tag, status, enabled)
     VALUES (?, 'k', 'enc', 'iv', 'tag', 'healthy', 1)
@@ -141,6 +143,26 @@ describe('speed scoring: timeouts count against speed (#619)', () => {
     const refusing = scores.find(s => s.modelId === 'refusing')!;
     const fast = scores.find(s => s.modelId === 'fast')!;
     expect(refusing.reliability).toBeLessThan(fast.reliability);
+  });
+
+  it("a 'canceled' row (#752 — client hung up) affects neither speed nor reliability", () => {
+    addModel({ platform: 'google', modelId: 'steady', name: 'Steady', priority: 1 });
+    addModel({ platform: 'groq', modelId: 'hungup', name: 'HungUp', priority: 2 });
+    for (const [platform, modelId] of [['google', 'steady'], ['groq', 'hungup']] as const) {
+      addRequests(platform, modelId, { count: 40, status: 'success', outTokens: 100, latencyMs: 1000, ttfbMs: 200 });
+    }
+    // Long-latency canceled rows would read as timeouts/failures if counted.
+    addRequests('groq', 'hungup', {
+      count: 20, status: 'canceled', outTokens: 0, latencyMs: 120_000,
+      error: 'client disconnected after 120.0s; upstream request canceled',
+    });
+
+    refreshStatsCache(getDb(), true);
+    expect(speedOf('hungup')).toBeCloseTo(speedOf('steady'), 10);
+    const { scores } = getRoutingScores();
+    const hungup = scores.find(s => s.modelId === 'hungup')!;
+    const steady = scores.find(s => s.modelId === 'steady')!;
+    expect(hungup.reliability).toBeCloseTo(steady.reliability, 10);
   });
 });
 

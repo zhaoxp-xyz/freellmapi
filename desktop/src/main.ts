@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { app, dialog, ipcMain, clipboard, nativeTheme, shell } from 'electron';
 import { startServer, ensureSessionToken, getUnifiedApiKey } from './server.mjs';
 import { loadConfig, saveConfig } from './config.js';
+import { installFileLogger } from './logger.js';
 import { buildTray, refreshTrayLocale } from './tray.js';
 import { openDashboard } from './window.js';
 import { todayStats, hourlyRequests, successRateToday } from './stats.js';
@@ -20,6 +21,11 @@ app.setPath('userData', path.join(app.getPath('appData'), 'FreeLLMAPI'));
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
+  // Before anything else can print: a packaged app has no attached stdout, so
+  // without this the server's console output — the password-reset code above
+  // all (#824) — is written nowhere the user can read it.
+  installFileLogger();
+
   let resolvedPort = DEFAULT_PORT;
   let sessionToken = '';
   // The dashboard owns the theme (its Settings dialog); the popover and the
@@ -183,6 +189,12 @@ if (!app.requestSingleInstanceLock()) {
     // API local-only. The bind host is fixed at listen() time, so the tray
     // toggle persists the flag and relaunches.
     const host = cfg.lanAccess ? '0.0.0.0' : '127.0.0.1';
+
+    // The bundled server runs in THIS process, so handing it the shell's own
+    // version is both the cheapest and the most authoritative answer for the
+    // dashboard's version row — no manifest lookup, and it cannot disagree with
+    // the app the user actually launched (#703).
+    process.env.FREEAPI_VERSION = app.getVersion();
 
     try {
       const { port } = await startServer({

@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, NavLink, Link, useLocation, useNavigate } from 'react-router-dom'
 import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ChevronDown, LogOut, Menu, MoreHorizontal, Search, Settings, Sparkles } from 'lucide-react'
+import { ChevronDown, KeyRound, LogOut, Menu, MoreHorizontal, Search, Settings, Sparkles } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -14,12 +14,13 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { AuthGate } from '@/components/auth-gate'
+import { AuthGate, ChangeCredentialsModal } from '@/components/auth-gate'
 import { CommandPalette } from '@/components/command-palette'
 import { openCommandPalette } from '@/components/command-palette-state'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { SettingsDialog } from '@/components/settings-dialog'
 import { Toaster } from '@/components/toaster'
+import { UpdateReminder } from '@/components/update-reminder'
 import { usePremium } from '@/hooks/use-premium'
 import { I18nProvider, useI18n } from '@/i18n'
 import { logout } from '@/lib/api'
@@ -32,10 +33,12 @@ import ModelDetailPage from '@/pages/ModelDetailPage'
 import FusionPage from '@/pages/FusionPage'
 import EmbeddingsPage from '@/pages/EmbeddingsPage'
 import ImagePage from '@/pages/ImagePage'
+import VideoPage from '@/pages/VideoPage'
 import AudioPage from '@/pages/AudioPage'
 import MediaDetailPage from '@/pages/MediaDetailPage'
 import EmbeddingDetailPage from '@/pages/EmbeddingDetailPage'
 import AnalyticsPage from '@/pages/AnalyticsPage'
+import LogsPage from '@/pages/LogsPage'
 import PremiumPage from '@/pages/PremiumPage'
 import NotFoundPage from '@/pages/NotFoundPage'
 import AgentsPage from '@/pages/AgentsPage'
@@ -63,16 +66,44 @@ const navItems = [
   { to: '/models/groups', labelKey: 'nav.auxiliary' },
 ]
 
-// The five modality pages behind "Models"; surfaced in the nav dropdown and
+// The modality pages behind "Models"; surfaced in the nav dropdown and
 // the mobile submenu so Fusion/Embeddings/Image/Audio are discoverable without
 // first landing on the chat table.
 const modelItems = [
   { to: '/models/chat', labelKey: 'models.chatModelsTab' },
   { to: '/models/embeddings', labelKey: 'models.embeddingsTab' },
   { to: '/models/image', labelKey: 'models.imageTab' },
+  { to: '/models/video', labelKey: 'models.videoTab' },
   { to: '/models/audio', labelKey: 'models.audioTab' },
   { to: '/models/fusion', labelKey: 'models.fusionTab' },
 ]
+
+// The pages that hang off "Analytics". Logs is reachable only from here — it is
+// deliberately kept out of navItems so the top bar does not grow a seventh entry.
+const analyticsItems = [
+  { to: '/analytics', labelKey: 'nav.analytics' },
+  { to: '/logs', labelKey: 'nav.logs' },
+]
+
+// Nav entries rendered as a split control: the label still navigates, and a
+// chevron (desktop) / submenu (mobile) reveals the pages behind it. Keyed by the
+// nav entry's `to` so both branches below stay one lookup, not two hardcoded
+// special cases.
+const navMenus: Record<
+  string,
+  { ariaKey: string; items: { to: string; labelKey: string }[]; isActive: (pathname: string) => boolean }
+> = {
+  '/models': {
+    ariaKey: 'nav.modelsMenu',
+    items: modelItems,
+    isActive: (pathname) => pathname.startsWith('/models'),
+  },
+  '/analytics': {
+    ariaKey: 'nav.analyticsMenu',
+    items: analyticsItems,
+    isActive: (pathname) => pathname.startsWith('/analytics') || pathname.startsWith('/logs'),
+  },
+}
 
 const isMac = typeof navigator !== 'undefined' && /mac/i.test(navigator.platform)
 
@@ -121,15 +152,23 @@ function AccountMenuItems({
   upgradeLabel,
   settingsLabel,
   signOutLabel,
+  changeEmailLabel,
+  changePasswordLabel,
   onUpgrade,
   onOpenSettings,
+  onChangeEmail,
+  onChangePassword,
 }: {
   showUpgrade: boolean
   upgradeLabel: string
   settingsLabel: string
   signOutLabel: string
+  changeEmailLabel: string
+  changePasswordLabel: string
   onUpgrade: () => void
   onOpenSettings: () => void
+  onChangeEmail: () => void
+  onChangePassword: () => void
 }) {
   return (
     <>
@@ -143,9 +182,19 @@ function AccountMenuItems({
         <Settings />
         {settingsLabel}
       </DropdownMenuItem>
+      {/* Desktop signs in with a hidden local account, so it has no credentials
+          to change and no session to end. */}
       {!isDesktopApp && (
         <>
           <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={onChangeEmail}>
+            <span className="flex size-4 items-center justify-center font-serif text-xs font-bold">@</span>
+            {changeEmailLabel}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={onChangePassword}>
+            <KeyRound />
+            {changePasswordLabel}
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => logout()}>
             <LogOut />
             {signOutLabel}
@@ -161,6 +210,7 @@ function Navbar() {
   const location = useLocation()
   const navigate = useNavigate()
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [credentialsMode, setCredentialsMode] = useState<'password' | 'email' | null>(null)
   const { data: premium, licensed, isLoading: premiumLoading, isError: premiumError } = usePremium()
   const showUpgrade = Boolean(premium) && !licensed && !premiumLoading && !premiumError
 
@@ -184,23 +234,24 @@ function Navbar() {
             className="ms-10 hidden items-center gap-6 md:flex"
             style={isDesktopApp ? ({ WebkitAppRegion: 'no-drag' } as React.CSSProperties) : undefined}
           >
-            {navItems.map((item) =>
-              item.to === '/models' ? (
+            {navItems.map((item) => {
+              const menu = navMenus[item.to]
+              return menu ? (
                 // Split control: the label navigates, the chevron reveals the
-                // five modality pages hiding behind "Models".
+                // pages hiding behind it.
                 <div key={item.to} className="flex items-center gap-0.5">
                   <NavItem to={item.to}>{t(item.labelKey)}</NavItem>
                   <DropdownMenu>
                     <DropdownMenuTrigger
-                      aria-label={t('nav.modelsMenu')}
+                      aria-label={t(menu.ariaKey)}
                       className="rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
                     >
                       <ChevronDown className="size-3.5" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-44">
-                      {modelItems.map((model) => (
-                        <DropdownMenuItem key={model.to} onClick={() => navigate(model.to)}>
-                          {t(model.labelKey)}
+                      {menu.items.map((entry) => (
+                        <DropdownMenuItem key={entry.to} onClick={() => navigate(entry.to)}>
+                          {t(entry.labelKey)}
                         </DropdownMenuItem>
                       ))}
                     </DropdownMenuContent>
@@ -210,8 +261,8 @@ function Navbar() {
                 <NavItem key={item.to} to={item.to}>
                   {t(item.labelKey)}
                 </NavItem>
-              ),
-            )}
+              )
+            })}
           </nav>
           <div
             className="ms-auto hidden items-center gap-1 md:flex"
@@ -239,8 +290,12 @@ function Navbar() {
                   upgradeLabel={t('nav.upgrade')}
                   settingsLabel={t('nav.settings')}
                   signOutLabel={t('nav.signOut')}
+                  changeEmailLabel={t('auth.changeEmail')}
+                  changePasswordLabel={t('auth.changePassword')}
                   onUpgrade={() => navigate('/premium')}
                   onOpenSettings={() => setSettingsOpen(true)}
+                  onChangeEmail={() => setCredentialsMode('email')}
+                  onChangePassword={() => setCredentialsMode('password')}
                 />
               </DropdownMenuContent>
             </DropdownMenu>
@@ -255,18 +310,19 @@ function Navbar() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
                 <DropdownMenuGroup>
-                  {navItems.map((item) =>
-                    item.to === '/models' ? (
+                  {navItems.map((item) => {
+                    const menu = navMenus[item.to]
+                    return menu ? (
                       <DropdownMenuSub key={item.to}>
                         <DropdownMenuSubTrigger
-                          className={location.pathname.startsWith('/models') ? 'bg-accent text-accent-foreground font-medium' : undefined}
+                          className={menu.isActive(location.pathname) ? 'bg-accent text-accent-foreground font-medium' : undefined}
                         >
                           {t(item.labelKey)}
                         </DropdownMenuSubTrigger>
                         <DropdownMenuSubContent>
-                          {modelItems.map((model) => (
-                            <DropdownMenuItem key={model.to} onClick={() => navigate(model.to)}>
-                              {t(model.labelKey)}
+                          {menu.items.map((entry) => (
+                            <DropdownMenuItem key={entry.to} onClick={() => navigate(entry.to)}>
+                              {t(entry.labelKey)}
                             </DropdownMenuItem>
                           ))}
                         </DropdownMenuSubContent>
@@ -279,8 +335,8 @@ function Navbar() {
                       >
                         {t(item.labelKey)}
                       </DropdownMenuItem>
-                    ),
-                  )}
+                    )
+                  })}
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <AccountMenuItems
@@ -288,8 +344,12 @@ function Navbar() {
                   upgradeLabel={t('nav.upgrade')}
                   settingsLabel={t('nav.settings')}
                   signOutLabel={t('nav.signOut')}
+                  changeEmailLabel={t('auth.changeEmail')}
+                  changePasswordLabel={t('auth.changePassword')}
                   onUpgrade={() => navigate('/premium')}
                   onOpenSettings={() => setSettingsOpen(true)}
+                  onChangeEmail={() => setCredentialsMode('email')}
+                  onChangePassword={() => setCredentialsMode('password')}
                 />
               </DropdownMenuContent>
             </DropdownMenu>
@@ -297,6 +357,9 @@ function Navbar() {
         </div>
       </header>
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+      {credentialsMode && (
+        <ChangeCredentialsModal mode={credentialsMode} onClose={() => setCredentialsMode(null)} />
+      )}
     </>
   )
 }
@@ -307,6 +370,37 @@ function PageBoundary({ children }: { children: ReactNode }) {
   return <ErrorBoundary key={location.pathname}>{children}</ErrorBoundary>
 }
 
+// Routes that own the whole viewport instead of sitting in the shell's centred,
+// padded column. Only the Playground so far: its three columns run edge to edge
+// and the transcript scrolls inside its own pane, so the page must be exactly
+// as tall as what is left under the navbar — not a centred card with margins.
+const FULL_BLEED_ROUTES = new Set(['/playground'])
+
+// The shell's content container. A full-bleed route drops the max-width and the
+// padding and becomes a flex child that fills the rest of the screen; every
+// other route gets a centred column that is always exactly max-w-6xl wide.
+//
+// `w-full` is load-bearing, not decoration. This <main> is an item of a COLUMN
+// flex container, so its cross axis is the horizontal one — and flexbox only
+// stretches an item across the cross axis when neither cross-axis margin is
+// auto (CSS Flexbox §9.6). `mx-auto` sets both, so without an explicit width
+// the column shrink-to-fits its content instead: the page is only ever as wide
+// as the widest thing that has finished rendering. On a page that fills in from
+// several independent queries — Analytics fires ten — that turns every arriving
+// response into a visible horizontal jump as the column re-fits, and pages
+// whose content never reaches 72rem (Analytics, Premium) settle narrower than
+// they were designed to be. A definite width makes the column 72rem from the
+// first paint, and `mx-auto` goes back to only centring it.
+function PageContainer({ children }: { children: ReactNode }) {
+  const location = useLocation()
+  const fullBleed = FULL_BLEED_ROUTES.has(location.pathname)
+  return (
+    <main className={fullBleed ? 'flex min-h-0 flex-1 flex-col' : 'mx-auto w-full max-w-6xl px-6 py-8'}>
+      {children}
+    </main>
+  )
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -314,9 +408,13 @@ function App() {
         <I18nProvider>
           <BrowserRouter basename={import.meta.env.BASE_URL}>
             <AuthGate>
-              <div className={`min-h-screen ${isDesktopApp ? 'desktop-backdrop' : 'bg-background'}`}>
+              {/* Column, so a full-bleed route can claim the height the navbar
+                  leaves without anyone having to know how tall the navbar is.
+                  Fixed-position children (toaster, palette, reminder) are out of
+                  flow, and a padded route stretches to nothing it can show. */}
+              <div className={`flex min-h-screen flex-col ${isDesktopApp ? 'desktop-backdrop' : 'bg-background'}`}>
                 <Navbar />
-                <main className="mx-auto max-w-6xl px-6 py-8">
+                <PageContainer>
                   <PageBoundary>
                     <Routes>
                       <Route path="/" element={<Navigate to="/models/chat" replace />} />
@@ -328,6 +426,8 @@ function App() {
                       <Route path="/models/embeddings/:id" element={<EmbeddingDetailPage />} />
                       <Route path="/models/image" element={<ImagePage />} />
                       <Route path="/models/image/:id" element={<MediaDetailPage modality="image" />} />
+                      <Route path="/models/video" element={<VideoPage />} />
+                      <Route path="/models/video/:id" element={<MediaDetailPage modality="video" />} />
                       <Route path="/models/audio" element={<AudioPage />} />
                       <Route path="/models/audio/:id" element={<MediaDetailPage modality="audio" />} />
                       <Route path="/models/transcription/:id" element={<MediaDetailPage modality="transcription" />} />
@@ -336,6 +436,7 @@ function App() {
                       <Route path="/agents" element={<AgentsPage />} />
                       <Route path="/fallback" element={<Navigate to="/models/chat" replace />} />
                       <Route path="/analytics" element={<AnalyticsPage />} />
+                      <Route path="/logs" element={<LogsPage />} />
                       <Route path="/premium" element={<PremiumPage />} />
                       <Route path="/models/groups" element={<AuxiliaryPage />} />
                       <Route path="/auxiliary" element={<Navigate to="/models/groups" replace />} />
@@ -344,9 +445,10 @@ function App() {
                       <Route path="*" element={<NotFoundPage />} />
                     </Routes>
                   </PageBoundary>
-                </main>
+                </PageContainer>
                 <Toaster />
                 <CommandPalette />
+                <UpdateReminder />
               </div>
             </AuthGate>
           </BrowserRouter>

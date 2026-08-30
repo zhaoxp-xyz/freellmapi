@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { AudioLines, Image as ImageIcon, Mic } from 'lucide-react'
+import { AudioLines, Clapperboard, Image as ImageIcon, Mic } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { Switch } from '@/components/ui/switch'
 import { ConfirmButton } from '@/components/confirm-button'
@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/empty-state'
 import { CardSkeleton } from '@/components/ui/skeleton'
 import { PageHeader } from '@/components/page-header'
 import { ModelsTabs } from '@/components/models-tabs'
+import { UsageSummaryCard } from '@/components/usage-summary-card'
 import { useI18n } from '@/i18n'
 
 export interface MediaModel {
@@ -15,13 +16,28 @@ export interface MediaModel {
   platform: string
   modelId: string
   displayName: string
-  modality: 'image' | 'audio' | 'transcription'
+  modality: 'image' | 'video' | 'audio' | 'transcription'
   enabled: boolean
   quotaLabel: string
   keyCount: number
   isCustom?: boolean
 }
 interface MediaData { models: MediaModel[] }
+
+interface MediaUsage {
+  modality: 'image' | 'video' | 'audio' | 'transcription'
+  models: {
+    id: number
+    platform: string
+    modelId: string
+    displayName: string
+    quotaLabel: string | null
+    requestsToday: number
+    requestsMonth: number
+  }[]
+  totalRequestsToday: number
+  totalRequestsMonth: number
+}
 
 export interface MediaGroup {
   label: string
@@ -113,7 +129,7 @@ function MediaGroupCard({
   )
 }
 
-// Shared list view for the Image and Audio dashboard tabs. Mirrors the chat
+// Shared list view for the Image, Video, and Audio dashboard tabs. Mirrors the chat
 // Models page: media models are consolidated into one logical-model group per
 // name (with a "N providers" badge), each linking to its own detail page, and a
 // per-provider enable toggle (saved immediately). Rows arrive from the signed
@@ -121,13 +137,28 @@ function MediaGroupCard({
 // applied. The Audio tab carries both directions of the modality: audio out
 // (text to speech, /v1/audio/speech) and audio in (speech to text,
 // /v1/audio/transcriptions) as two sections of one page.
-export function MediaModelsView({ modality }: { modality: 'image' | 'audio' }) {
+export function MediaModelsView({ modality }: { modality: 'image' | 'video' | 'audio' }) {
   const { t } = useI18n()
   const queryClient = useQueryClient()
 
   const { data, isLoading } = useQuery<MediaData>({
     queryKey: ['media'],
     queryFn: () => apiFetch('/api/media'),
+  })
+
+  const { data: usage } = useQuery<MediaUsage>({
+    queryKey: ['media', 'usage', modality],
+    queryFn: () => apiFetch(`/api/media/usage?modality=${modality}`),
+    refetchInterval: 30_000,
+  })
+
+  // The Audio tab carries both directions of the modality, so the STT section
+  // gets its own usage summary (the endpoint accepts modality=transcription).
+  const { data: sttUsage } = useQuery<MediaUsage>({
+    queryKey: ['media', 'usage', 'transcription'],
+    queryFn: () => apiFetch('/api/media/usage?modality=transcription'),
+    enabled: modality === 'audio',
+    refetchInterval: 30_000,
   })
 
   const toggle = useMutation({
@@ -144,9 +175,19 @@ export function MediaModelsView({ modality }: { modality: 'image' | 'audio' }) {
   const models = data?.models ?? []
   const groups = groupMedia(models.filter(m => m.modality === modality))
   const sttGroups = groupMedia(models.filter(m => m.modality === 'transcription'))
-  const title = modality === 'image' ? t('models.imageTitle') : t('models.audioTitle')
-  const description = modality === 'image' ? t('models.imageDesc') : t('models.audioDesc')
-  const endpoint = modality === 'image' ? '/v1/images/generations' : '/v1/audio/speech'
+  // Every models tab shares one title; the tab bar above says which set you are
+  // looking at, so repeating "Image"/"Audio" here just competed with it.
+  const title = t('models.title')
+  const description = modality === 'image'
+    ? t('models.imageDesc')
+    : modality === 'video'
+      ? t('models.videoDesc')
+      : t('models.audioDesc')
+  const endpoint = modality === 'image'
+    ? '/v1/images/generations'
+    : modality === 'video'
+      ? '/v1/videos/generations'
+      : '/v1/audio/speech'
 
   const renderGroups = (gs: MediaGroup[], detailBase: string) => gs.map(g => (
     <MediaGroupCard
@@ -169,6 +210,23 @@ export function MediaModelsView({ modality }: { modality: 'image' | 'audio' }) {
           {t('models.mediaHint')} <code className="rounded bg-muted px-1 py-0.5 font-mono text-[11px]">{endpoint}</code>
         </p>
 
+        {usage && usage.models.length > 0 && (
+          <UsageSummaryCard
+            unit="requests"
+            total={usage.totalRequestsMonth}
+            requestsToday={usage.totalRequestsToday}
+            rows={usage.models.map(m => ({
+              label: m.displayName,
+              platform: m.platform,
+              // Two providers can serve the same model name (FLUX.1 on both
+              // nvidia and cloudflare), so name the provider to tell them apart.
+              quotaLabel: [m.platform, m.quotaLabel].filter(Boolean).join(' · '),
+              amount: m.requestsMonth,
+              requestsToday: m.requestsToday,
+            }))}
+          />
+        )}
+
         {isLoading ? (
           <>
             <CardSkeleton />
@@ -176,7 +234,7 @@ export function MediaModelsView({ modality }: { modality: 'image' | 'audio' }) {
           </>
         ) : groups.length === 0 ? (
           <EmptyState
-            icon={modality === 'image' ? ImageIcon : AudioLines}
+            icon={modality === 'image' ? ImageIcon : modality === 'video' ? Clapperboard : AudioLines}
             title={t('models.mediaEmpty')}
           />
         ) : (
@@ -190,6 +248,21 @@ export function MediaModelsView({ modality }: { modality: 'image' | 'audio' }) {
           <p className="text-xs text-muted-foreground">
             {t('models.sttHint')} <code className="rounded bg-muted px-1 py-0.5 font-mono text-[11px]">/v1/audio/transcriptions</code>
           </p>
+
+          {sttUsage && sttUsage.models.length > 0 && (
+            <UsageSummaryCard
+              rows={sttUsage.models.map(m => ({
+                label: m.displayName,
+                platform: m.platform,
+                quotaLabel: [m.platform, m.quotaLabel].filter(Boolean).join(' · '),
+                amount: m.requestsMonth,
+                requestsToday: m.requestsToday,
+              }))}
+              total={sttUsage.totalRequestsMonth}
+              requestsToday={sttUsage.totalRequestsToday}
+              unit="requests"
+            />
+          )}
 
           {isLoading ? (
             <CardSkeleton />

@@ -7,7 +7,8 @@ import { mintDashboardToken, isGatedApiPath } from '../helpers/auth.js';
 let dashToken = '';
 
 async function request(app: Express, method: string, path: string, body?: any) {
-  const server = app.listen(0);
+  const server = app.listen(0, '127.0.0.1');
+  if (!server.listening) await new Promise<void>(resolve => server.once('listening', () => resolve()));
   const addr = server.address() as any;
   const url = `http://127.0.0.1:${addr.port}${path}`;
 
@@ -31,7 +32,8 @@ async function multipartRequest(
   field: 'file' | 'files',
   files: Array<{ filename: string; content: string; type?: string }>,
 ) {
-  const server = app.listen(0);
+  const server = app.listen(0, '127.0.0.1');
+  if (!server.listening) await new Promise<void>(resolve => server.once('listening', () => resolve()));
   const addr = server.address() as any;
   const url = `http://127.0.0.1:${addr.port}${path}`;
   const form = new FormData();
@@ -307,6 +309,56 @@ describe('Keys API', () => {
       ]);
       expect(malformed.status).toBe(400);
       expect(malformed.body.error.message).toBe('Invalid JSON format');
+    });
+  });
+
+  // #705: the dashboard only ever had the platform-wide switch, which for the
+  // Custom group meant every endpoint the operator runs. These are the two
+  // scopes it now offers, kept honest against each other.
+  describe('enable scope', () => {
+    async function addKey(platform: string, key: string) {
+      const { body } = await request(app, 'POST', '/api/keys', { platform, key });
+      return body.id as number;
+    }
+    const enabledById = async () => {
+      const { body } = await request(app, 'GET', '/api/keys');
+      return Object.fromEntries((body as any[]).map(k => [k.id, k.enabled]));
+    };
+
+    it('PATCH /api/keys/:id disables one key and leaves its siblings alone', async () => {
+      const first = await addKey('groq', 'gsk_first_key_123');
+      const second = await addKey('groq', 'gsk_second_key_456');
+
+      const { status } = await request(app, 'PATCH', `/api/keys/${first}`, { enabled: false });
+
+      expect(status).toBe(200);
+      expect(await enabledById()).toEqual({ [first]: false, [second]: true });
+    });
+
+    it('PATCH /api/keys/platform/:platform still writes every key of that platform', async () => {
+      const first = await addKey('groq', 'gsk_first_key_123');
+      const second = await addKey('groq', 'gsk_second_key_456');
+      const other = await addKey('cerebras', 'csk_other_key_789');
+
+      const { body } = await request(app, 'PATCH', '/api/keys/platform/groq', { enabled: false });
+
+      expect(body.updatedKeys).toBe(2);
+      expect(await enabledById()).toEqual({ [first]: false, [second]: false, [other]: true });
+    });
+
+    it('re-enables a single key of a platform that was switched off wholesale', async () => {
+      const first = await addKey('groq', 'gsk_first_key_123');
+      const second = await addKey('groq', 'gsk_second_key_456');
+      await request(app, 'PATCH', '/api/keys/platform/groq', { enabled: false });
+
+      await request(app, 'PATCH', `/api/keys/${second}`, { enabled: true });
+
+      expect(await enabledById()).toEqual({ [first]: false, [second]: true });
+    });
+
+    it('404s a key that does not exist', async () => {
+      const { status } = await request(app, 'PATCH', '/api/keys/99999', { enabled: false });
+      expect(status).toBe(404);
     });
   });
 });
