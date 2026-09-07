@@ -32,6 +32,7 @@ import { geminiRouter } from './routes/gemini.js';
 import { ollamaRouter } from './routes/ollama.js';
 import { urlTokenRouter } from './routes/url-tokens.js';
 import { updateRouter } from './routes/update.js';
+import { auxiliaryRouter } from './routes/auxiliary.js';
 import { requireAuth } from './middleware/requireAuth.js';
 import { createProxyRateLimiter, createAdminRateLimiter } from './middleware/rateLimit.js';
 
@@ -255,6 +256,7 @@ export function createApp(config?: Config) {
   app.use('/api/backups', requireAuth, backupsRouter);
   app.use('/api/cache', requireAuth, cacheRouter);
   app.use('/api/compression', requireAuth, compressionRouter);
+  app.use('/api/auxiliary', requireAuth, auxiliaryRouter);
   app.use('/api/update', requireAuth, updateRouter);
 
   // Health check — no auth required.

@@ -198,6 +198,10 @@ export type Platform =
   // aihorde.net key raises queue priority. Has a dedicated AIHordeProvider that
   // normalizes the proxy's OpenAI divergences. See issue #345.
   | 'aihorde'
+  // Inception Labs — OpenAI-compatible diffusion LLM API (api.inceptionlabs.ai/v1).
+  // Free tier available; key starts with sk_. Currently one model: mercury-2
+  // (diffusion LLM, 128K context, tool/json_mode/structured_outputs support).
+  | 'inception'
   // User-configured OpenAI-compatible endpoint (llama.cpp, LM Studio, vLLM,
   // Ollama, any base_url). The endpoint URL lives on the api_keys row; see #117.
   | 'custom'

@@ -485,6 +485,14 @@ register(new OpenAICompatProvider({
 // priority); a registered aihorde.net key raises priority. See issue #345.
 register(new AIHordeProvider());
 
+// Inception Labs — OpenAI-compatible diffusion LLM API (api.inceptionlabs.ai/v1).
+// Free tier with mercury-2 (128K context, tools/json/structured_outputs support).
+register(new OpenAICompatProvider({
+  platform: 'inception',
+  name: 'Inception Labs',
+  baseUrl: 'https://api.inceptionlabs.ai/v1',
+}));
+
 // Placeholder so getProvider('custom')/hasProvider('custom')/getAllProviders()
 // behave — but the real instance is built per-key by resolveProvider(), since
 // a custom provider's base URL is user-supplied and lives on the api_keys row.
